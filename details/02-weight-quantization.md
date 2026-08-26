@@ -89,6 +89,38 @@ Try a range of `Δ` values on a calibration dataset and pick the one with lowest
 
 Make `Δ` a learnable parameter during quantization-aware training.
 
+### Method E: TWN Rule (Recommended Default)
+
+*Ternary Weight Networks* (Li & Liu, 2016) derives the threshold from the joint minimization `min_{α,T} ‖W − αT‖²`. Under the assumption that weights are approximately zero-mean Gaussian, the optimum has closed form:
+
+```
+α ≈ mean(|W|)          (optimal scale)
+Δ ≈ 0.7 × mean(|W|)    (near-optimal threshold, i.e. Δ ≈ 0.7α)
+```
+
+This needs no calibration data and no search. In practice the per-channel least-squares scale (§2.4) is applied on top of the TWN Δ for a further accuracy gain. The conversion tool implements this as quantizer mode `twn` — its default.
+
+### Method F: Absmean Rounding (BitNet b1.58)
+
+*BitNet b1.58* (Ma et al., 2024) eliminates threshold selection entirely by normalizing weights with their mean absolute value and rounding:
+
+```
+γ = mean(|W|)
+T = roundclip(W / γ, -1, +1)
+```
+
+Values within ±0.5γ round to 0; beyond that to ±1. This scheme trains real BitNet LLMs at billion-parameter scale, making it the most field-proven rule available. It yields ~31% zeros on Gaussian weights (vs ~42% for TWN), trading some sparsity for simplicity and scale invariance. The tool implements it as mode `absmean`.
+
+### Choosing Between Rules
+
+| Situation | Use |
+|-----------|-----|
+| No calibration data, general default | `twn` |
+| Converting models known to match BitNet training regime | `absmean` |
+| Target sparsity must be hit exactly | auto-threshold (bisection on Δ) |
+| Per-layer control / QAT warm start | `delta` |
+
+
 ### 2.2.1 Weight Distribution Analysis
 
 In practice, most neural network weights follow a bell-shaped distribution that is well-approximated by a Gaussian (normal) distribution with mean ≈ 0. This holds across architectures (MLPs, convolutions, attention projections) and training regimes.

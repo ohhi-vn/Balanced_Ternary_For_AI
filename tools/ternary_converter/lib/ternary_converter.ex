@@ -55,15 +55,15 @@ defmodule TernaryConverter do
 
   @doc """
   Convert all weight tensors to ternary layers.
+
+  Accepts the same quantization options as `Layer.from_dense/3`
+  (`mode:` / `delta:` — see `Quantizer.quantize/2`). The result is
+  sorted by layer name for deterministic file layout.
   """
   @spec convert_all(%{String.t() => Nx.Tensor.t()}, keyword()) :: [Layer.t()]
   def convert_all(weights, opts \\ []) do
-    delta = Keyword.get(opts, :delta, 0.5)
-
     weights
-    |> Enum.map(fn {name, w} ->
-      Layer.from_dense(w, name, delta: delta)
-    end)
+    |> Enum.map(fn {name, w} -> Layer.from_dense(w, name, opts) end)
     |> Enum.sort_by(& &1.name)
   end
 
@@ -128,41 +128,17 @@ defmodule TernaryConverter do
   Get model statistics.
   """
   @spec stats([Layer.t()]) :: map()
-  def stats(layers) do
-    total_params =
-      Enum.reduce(layers, 0, fn l, acc ->
-        {o, i} = l.shape
-        acc + o * i
-      end)
-
-    total_zeros =
-      Enum.reduce(layers, 0, fn l, acc ->
-        {o, i} = l.shape
-        acc + round(o * i * l.sparsity)
-      end)
-
-    total_nonzero = total_params - total_zeros
-
-    original_bytes = total_params * 4
-    packed_bytes = Enum.reduce(layers, 0, fn l, acc -> acc + byte_size(l.weight_packed) end)
-    scale_bytes = Enum.reduce(layers, 0, fn l, acc -> acc + length(l.scales) * 2 end)
-
-    %{
-      num_layers: length(layers),
-      total_parameters: total_params,
-      nonzero_parameters: total_nonzero,
-      zero_parameters: total_zeros,
-      overall_sparsity: total_zeros / max(total_params, 1),
-      original_size_mb: original_bytes / 1024 / 1024,
-      packed_size_mb: (packed_bytes + scale_bytes) / 1024 / 1024,
-      compression_ratio: original_bytes / max(packed_bytes + scale_bytes, 1)
-    }
-  end
+  defdelegate stats(layers), to: TernaryConverter.Stats, as: :compute
 
   # ── Validation ───────────────────────────────────────────────
 
   @doc """
   Run validation: sparsity, similarity, inference test, round-trip.
+
+  Prints a human-readable report and returns the computed metrics as a
+  map for programmatic use. Note: this function performs I/O; call the
+  underlying pieces (`stats/1`, `inference/2`, `Packer`) directly when a
+  pure result is needed.
   """
   @spec validate([Layer.t()], %{String.t() => Nx.Tensor.t()}, Nx.Tensor.t()) :: map()
   def validate(layers, fp32_weights, sample_input) do
@@ -202,16 +178,13 @@ defmodule TernaryConverter do
 
     roundtrip_ok =
       Enum.all?(layers, fn layer ->
-        unpacked = Packer.unpack(layer.weight_packed, elem(layer.shape, 0) * elem(layer.shape, 1))
+        # Unpack the stored payload and re-pack it; it must reproduce
+        # the exact stored bytes.
+        total = elem(layer.shape, 0) * elem(layer.shape, 1)
 
-        original =
-          Nx.to_flat_list(
-            layer.weight_packed
-            |> Packer.unpack(elem(layer.shape, 0) * elem(layer.shape, 1))
-          )
-
-        unpacked_list = unpacked
-        original == unpacked_list
+        layer.weight_packed
+        |> Packer.unpack(total)
+        |> Packer.pack() == layer.weight_packed
       end)
 
     IO.puts("  All layers round-trip OK: #{roundtrip_ok}")

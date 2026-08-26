@@ -51,7 +51,8 @@ The zero trit is the key advantage: it encodes sparsity directly, turning near-z
 | File | Topic |
 |------|-------|
 | [`details/13-model-conversion-guide.md`](details/13-model-conversion-guide.md) | PTQ/QAT pipelines, model-specific recipes, validation suite, Elixir conversion toolchain |
-| [`tools/ternary_converter/`](tools/ternary_converter/) | Full Elixir application: convert, demo, info, validate CLI + library API |
+| [`tools/ternary_converter/`](tools/ternary_converter/) | Full Elixir application: convert (safetensors → .tbin), demo, info, validate CLI + library API |
+| [`examples/ternary_accel/`](examples/ternary_accel/) | Ternary GEMM on NVIDIA CUDA (EXLA) and Apple Silicon MLX (EMLX) via Nx |
 
 ### Feasibility Analysis
 
@@ -69,12 +70,24 @@ The zero trit is the key advantage: it encodes sparsity directly, turning near-z
 | [`details/10-comparison.md`](details/10-comparison.md) | Detailed comparison with BNN, INT8, INT4, FP8, pruning — pros/cons, decision matrix, TCO |
 | [`details/08-research-roadmap.md`](details/08-research-roadmap.md) | 48-week roadmap from software simulation to ASIC tape-out, publication strategy |
 
+### Theory & Analysis Deep Dives
+
+| File | Topic |
+|------|-------|
+| [`details/18-multiplication-as-selection.md`](details/18-multiplication-as-selection.md) | Why ternary removes the multiplier: MAC cost model, select/add/skip datapath, op-count math |
+| [`details/19-sparsity-economics.md`](details/19-sparsity-economics.md) | Where zeros come from, accuracy/compute tradeoffs, sparse formats, hardware gating |
+| [`details/20-quantization-theory.md`](details/20-quantization-theory.md) | Derivations: least-squares scales, TWN joint optimum, absmean (BitNet b1.58), SQNR, bisection |
+| [`details/21-memory-bandwidth-analysis.md`](details/21-memory-bandwidth-analysis.md) | Roofline at batch 1, SRAM fit arithmetic, energy breakdown, batch effects |
+| [`details/22-history-and-vision.md`](details/22-history-and-vision.md) | Setun history, why binary won, target markets, phase gates, honest risks |
+| [`details/23-practical-labs-and-exam.md`](details/23-practical-labs-and-exam.md) | Guided study path: 5 hands-on labs + capstone exam (answer key, grading rubric) |
+
 ### Examples
 
 | Directory | Content |
 |-----------|---------|
 | [`examples/ternary_pure/`](examples/ternary_pure/) | Pure Elixir demo: quantize → pack → forward pass → differential encoding |
 | [`examples/ternary_nx/`](examples/ternary_nx/) | Nx-based demo: tensor quantization → GEMM → sparsity analysis → packing |
+| [`examples/ternary_accel/`](examples/ternary_accel/) | GPU acceleration demo: ternary GEMM on CUDA (EXLA) and Apple Silicon (MLX), packed-trit decoding on device, throughput benchmark |
 
 ## Target Application
 
@@ -82,21 +95,40 @@ A **balanced-ternary transformer inference accelerator** for edge devices — 2�
 
 ## Quick Start
 
-### Run the Elixir conversion tool
+### Convert a real model to ternary
 
 ```bash
 cd tools/ternary_converter
 mix deps.get
 
-# Run a full demo with synthetic weights
-mix run -e "TernaryConverter.CLI.main([\"demo\"])"
+# HuggingFace safetensors → .tbin, LLaMA policy, BitNet-style absmean mode
+mix run -e 'TernaryConverter.CLI.main(["convert", "--input", "model.safetensors", "--arch", "llama", "--mode", "absmean"])'
 
-# Convert to .tbin format
-mix run -e "TernaryConverter.CLI.main([\"convert\", \"--delta\", \"0.5\", \"--output\", \"model.tbin\"])"
-
-# Inspect a .tbin model
-mix run -e "TernaryConverter.CLI.main([\"info\", \"--model\", \"model.tbin\"])"
+# Inspect and validate
+mix run -e 'TernaryConverter.CLI.main(["info", "--model", "model.tbin"])'
+mix run -e 'TernaryConverter.CLI.main(["validate", "--model", "model.tbin"])'
 ```
+
+Architectures: `llama` · `gpt2` · `bert` · `vit` · `generic` (mixed-precision policies). Modes: `twn` (default), `absmean`, `delta`.
+
+### Run a demo
+
+```bash
+mix run -e 'TernaryConverter.CLI.main(["demo"])'
+
+# Or convert a synthetic model without an input file
+mix run -e 'TernaryConverter.CLI.main(["convert", "--sparsity", "0.5", "--output", "model.tbin"])'
+```
+
+### Run on CUDA / Apple MLX
+
+```bash
+cd examples/ternary_accel
+mix deps.get
+mix run -e "TernaryAccel.run()"
+```
+
+Decodes packed trits on-device and benchmarks ternary vs FP32 GEMM. See [the example](examples/ternary_accel/) for backend selection.
 
 ### Run the pure Elixir example
 

@@ -4,13 +4,14 @@ A complete Elixir application for converting neural network weights to balanced 
 
 ## Features
 
-- **Ternarization**: Convert FP32 weights to balanced ternary with configurable threshold
-- **Per-channel scaling**: MSE-optimal scale factors for accuracy recovery
+- **Safetensors input**: Read HuggingFace `.safetensors` checkpoints directly in pure Elixir (f32/f16/bf16/i64) — no Python
+- **Architecture policies**: `llama` / `gpt2` / `bert` / `vit` / `generic` mixed-precision rules; GPT-2 Conv1D transposition handled
+- **Quantization modes**: `twn` (Δ = 0.7·mean|W|), `absmean` (BitNet b1.58), `delta` (fixed threshold + MSE-optimal scales)
+- **Per-channel scaling**: least-squares optimal scale factors for accuracy recovery
 - **Binary packing**: 10 trits per 16-bit word (base-3 encoding)
 - **Sparse encoding**: Index+sign format for high-sparsity layers
 - **Sensitivity analysis**: Per-layer quantization sensitivity measurement
-- **Mixed precision**: Automatic FP16/ternary layer assignment
-- **.tbin format**: Compact binary model format with metadata
+- **Mixed precision**: Sensitive tensors (embeddings, norms, LM head) stored as FP16 records in `.tbin` v2
 - **CLI tool**: Convert, demo, info, and validate commands
 
 ## Installation
@@ -21,6 +22,24 @@ mix deps.get
 ```
 
 ## Quick Start
+
+### Convert a real checkpoint (safetensors → .tbin)
+
+```bash
+mix run -e 'TernaryConverter.CLI.main(["convert", "--input", "model.safetensors", "--arch", "llama", "--mode", "absmean"])'
+```
+
+Options:
+- `--arch llama|gpt2|bert|vit|generic` — mixed-precision policy
+- `--mode twn|absmean|delta` — quantization rule (`--delta F` sets the threshold for `delta`)
+- `--output PATH` — output file (default: `<input basename>.tbin`)
+
+Then inspect and validate:
+
+```bash
+mix run -e 'TernaryConverter.CLI.main(["info", "--model", "model.tbin"])'
+mix run -e 'TernaryConverter.CLI.main(["validate", "--model", "model.tbin"])'
+```
 
 ### Run the demo
 
@@ -58,6 +77,17 @@ mix escript.build
 ## Library Usage
 
 ```elixir
+# End-to-end: real safetensors checkpoint → .tbin
+{:ok, summary} =
+  TernaryConverter.Pipeline.run("model.safetensors", "model.tbin",
+    arch: :llama,
+    mode: :absmean
+  )
+
+summary.ternary_layers   # [%Layer{}] — packed trits + scales
+summary.fp16_layers      # [%RawLayer{}] — kept dense (embeddings, norms, lm_head)
+summary.stats            # %{sparsity: ..., compression_ratio: ...}
+
 # Create a ternary layer from weights
 w = Nx.random_uniform({256, 512})
 layer = TernaryConverter.convert_layer(w, "fc1", delta: 0.5)
@@ -108,16 +138,24 @@ ternary_converter/
 ├── lib/
 │   ├── ternary_converter.ex              # Main API
 │   └── ternary_converter/
-│       ├── quantizer.ex                  # Ternary quantization + scales
+│       ├── quantizer.ex                  # Modes delta|twn|absmean, auto-threshold
 │       ├── packer.ex                     # Binary packing (10→16, sparse)
-│       ├── layer.ex                      # Layer struct + forward pass
-│       ├── exporter.ex                   # .tbin export/import
+│       ├── layer.ex                      # Ternary layer struct + forward pass
+│       ├── raw_layer.ex                  # FP16 records for sensitive tensors
+│       ├── exporter.ex                   # .tbin v2 export/import (mixed)
+│       ├── safetensors.ex                # Pure-Elixir safetensors reader/writer
+│       ├── architectures.ex              # llama/gpt2/bert/vit policies
+│       ├── pipeline.ex                   # End-to-end conversion
 │       ├── sensitivity.ex                # Per-layer sensitivity analysis
+│       ├── stats.ex                      # Aggregate statistics
 │       └── cli.ex                        # Command-line interface
 ├── test/
 │   ├── quantizer_test.exs
 │   ├── packer_test.exs
 │   ├── layer_test.exs
+│   ├── safetensors_test.exs
+│   ├── architectures_test.exs
+│   ├── pipeline_test.exs
 │   └── integration_test.exs
 ├── mix.exs
 └── README.md
@@ -128,37 +166,54 @@ ternary_converter/
 | Module | Purpose |
 |--------|---------|
 | `TernaryConverter` | Main API: convert, inference, export, stats, validate |
-| `TernaryConverter.Quantizer` | `ternarize/2`, `compute_scales/2`, `auto_threshold/2`, `quality_metrics/2` |
+| `TernaryConverter.Pipeline` | End-to-end: safetensors → classify → quantize → .tbin |
+| `TernaryConverter.Quantizer` | `quantize/2` modes, `twn_delta/1`, `auto_threshold/2`, `quality_metrics/2` |
+| `TernaryConverter.Safetensors` | Pure-Elixir `.safetensors` reader/writer |
+| `TernaryConverter.Architectures` | Per-architecture mixed-precision classification + transforms |
 | `TernaryConverter.Packer` | `pack/1`, `unpack/2`, `pack_sparse/1`, `compression_ratio/1` |
 | `TernaryConverter.Layer` | `from_dense/3`, `forward/2`, `forward_nx/2`, `to_binary/1` |
-| `TernaryConverter.Exporter` | `export/3`, `load/1` for .tbin format |
+| `TernaryConverter.RawLayer` | FP16 dense record for embeddings/norms/LM head |
+| `TernaryConverter.Exporter` | `export/3`, `load/1` for .tbin v1/v2 format |
 | `TernaryConverter.Sensitivity` | `analyze/3`, `auto_mixed_precision/4` |
+| `TernaryConverter.Stats` | Aggregate size/sparsity statistics over mixed layers |
 | `TernaryConverter.CLI` | CLI: convert, demo, info, validate |
 
 ## .tbin Format
 
-Binary format for storing ternary models:
+Binary format for storing ternary models (version 2):
 
 ```
-[Header][Layer 1][Layer 2]...[Layer N]
+[Header][Record 1][Record 2]...[Record N]
 
 Header:
   magic:       "TBN\0" (4 bytes)
-  version:     uint32
+  version:     uint32 (2)
   num_layers:  uint32
   meta_len:    uint32
   metadata:    JSON (meta_len bytes)
 
-Per layer:
-  name_len:    uint16
-  name:        UTF-8 bytes
-  out_feat:    uint32
-  in_feat:     uint32
-  delta:       float32
-  sparsity:    float32
-  scales:      num_scales × float16
-  biases:      num_biases × float16
-  weights:     packed trits (10 per 16-bit word)
+Per record:
+  kind:        uint8  (0 = ternary, 1 = raw FP16)
+  size:        uint32
+  payload:
+    ternary:
+      name_len:    uint16
+      name:        UTF-8 bytes
+      out_feat:    uint32
+      in_feat:     uint32
+      delta:       float32
+      sparsity:    float32
+      scales:      num_scales × float16
+      biases:      num_biases × float16
+      weights:     packed trits (10 per 16-bit word)
+    raw fp16:
+      name_len:    uint16
+      name:        UTF-8 bytes
+      ndims:       uint8
+      dims:        ndims × uint32
+      data:        flat f16 payload
+
+Version 1 files (ternary-only, no kind byte) remain readable.
 ```
 
 ## License

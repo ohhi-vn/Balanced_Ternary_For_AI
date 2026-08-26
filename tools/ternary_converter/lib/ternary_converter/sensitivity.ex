@@ -34,6 +34,10 @@ defmodule TernaryConverter.Sensitivity do
         {name, Nx.dot(sample_input, Nx.transpose(t))}
       end)
 
+    # Zip the FP32 and ternary outputs per layer. The repeated `name`
+    # binding in `{name, ref}, {name, tern}` acts as an equality guard:
+    # it only matches when both lists agree on the layer, which they
+    # always do here because both were mapped from the same input order.
     Enum.zip(reference_outputs, ternary_outputs)
     |> Enum.map(fn {{name, ref}, {name, tern}} ->
       mse = Nx.mean(Nx.pow(Nx.subtract(ref, tern), 2)) |> Nx.to_number()

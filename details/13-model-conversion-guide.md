@@ -28,7 +28,7 @@ PTQ converts a pretrained model to ternary without any retraining. It is fast (m
 
 ### Step 1: Load the Pretrained Model
 
-In Elixir, model weights are loaded from `.safetensors` or `.onnx` files using the `TernaryConverter.ModelLoader` module. For PyTorch `.pt` files, use the Python interop bridge or pre-export to `.safetensors`.
+In Elixir, model weights are loaded from `.safetensors` files using the `TernaryConverter.Safetensors` module (pure Elixir, no Python). For PyTorch `.pt` files, pre-export to `.safetensors`.
 
 **Supported model formats (2025):**
 - PyTorch `.pt` / `.bin` (via safetensors export)
@@ -39,7 +39,7 @@ In Elixir, model weights are loaded from `.safetensors` or `.onnx` files using t
 
 ```elixir
 # Load weights from a safetensors file
-{:ok, weights} = TernaryConverter.ModelLoader.load("model.safetensors")
+{:ok, weights, metadata} = TernaryConverter.Safetensors.read("model.safetensors")
 
 # weights is a map of %{layer_name => Nx.Tensor.t()}
 # For example:
@@ -275,7 +275,7 @@ end
 
 ### Step 5: Export to `.tbin` Format
 
-The `.tbin` export is handled by `TernaryConverter.Exporter` (see §13.6.2). Here's the high-level usage:
+The `.tbin` export is handled by `TernaryConverter.Exporter` (see §13.6.2/§13.6.3). Here's the high-level usage:
 
 ```elixir
 # Convert all weights to ternary layers
@@ -837,35 +837,62 @@ For teams using Elixir/BEAM for ML workloads, the following sections provide a c
 
 ### 13.6.1 Project Structure
 
+The shipped implementation lives in [`tools/ternary_converter/`](../tools/ternary_converter/) (55 tests, CLI + library API):
+
 ```
-ternary_converter/
+tools/ternary_converter/
 ├── lib/
-│   ├── ternary_converter.ex              # Main API
-│   ├── ternary_converter/
-│   │   ├── model_loader.ex               # Load PyTorch/ONNX models
-│   │   ├── quantizer.ex                  # Ternary quantization
-│   │   ├── scaler.ex                     # Scale factor calibration
-│   │   ├── packer.ex                     # 10→16 binary packing
-│   │   ├── exporter.ex                   # .tbin file export
-│   │   ├── validator.ex                  # Perplexity, similarity checks
-│   │   ├── layer.ex                      # Ternary layer struct & forward
-│   │   ├── trainer.ex                    # QAT training loop
-│   │   ├── sensitivity.ex                # Per-layer sensitivity analysis
-│   │   └── formats/
-│   │       ├── pytorch_reader.ex         # Read .pt/.safetensors files
-│   │       ├── onnx_reader.ex            # Read ONNX models
-│   │       └── tbin.ex                   # Read/write .tbin format
-│   └── mix.exs
+│   ├── ternary_converter.ex            # Main facade API
+│   └── ternary_converter/
+│       ├── quantizer.ex                # Modes: delta | twn | absmean; bisection auto-threshold
+│       ├── packer.ex                   # 10→16 base-3 packing + sparse encoding
+│       ├── layer.ex                    # Ternary layer struct, forward, serialization
+│       ├── raw_layer.ex                # FP16 dense records for sensitive tensors
+│       ├── exporter.ex                 # .tbin v1/v2 read/write (mixed precision)
+│       ├── safetensors.ex              # Pure-Elixir safetensors reader/writer
+│       ├── architectures.ex            # llama/gpt2/bert/vit mixed-precision policies
+│       ├── pipeline.ex                 # End-to-end: load → classify → convert → export
+│       ├── sensitivity.ex              # Per-layer quantization sensitivity
+│       └── stats.ex                    # Aggregate model statistics
 ├── test/
 │   ├── quantizer_test.exs
 │   ├── packer_test.exs
 │   ├── layer_test.exs
-│   ├── exporter_test.exs
+│   ├── safetensors_test.exs
+│   ├── architectures_test.exs
+│   ├── pipeline_test.exs
 │   └── integration_test.exs
 └── README.md
 ```
 
-### 13.6.2 Core Modules
+### 13.6.2 Converting Real Checkpoints (CLI)
+
+HuggingFace `.safetensors` files are read directly in pure Elixir — no Python required:
+
+```bash
+cd tools/ternary_converter && mix deps.get
+
+# LLaMA-family checkpoint with BitNet-style absmean quantization
+mix run -e 'TernaryConverter.CLI.main(["convert",
+  "--input", "model.safetensors", "--arch", "llama", "--mode", "absmean"])'
+
+# GPT-2 checkpoint with TWN thresholds
+mix run -e 'TernaryConverter.CLI.main(["convert",
+  "--input", "gpt2.safetensors", "--arch", "gpt2", "--mode", "twn"])'
+
+# Inspect / validate the result
+mix run -e 'TernaryConverter.CLI.main(["info", "--model", "model.tbin"])'
+mix run -e 'TernaryConverter.CLI.main(["validate", "--model", "model.tbin"])'
+```
+
+What `convert` does:
+
+1. **Load** every tensor from the source file (`Safetensors`), normalizing f16/bf16/i64 to f32/s64.
+2. **Classify** each tensor through the architecture policy (`Architectures`): ternarize, keep FP16, or skip buffers/biases. GPT-2 Conv1D weights are transposed to `(out, in)` automatically.
+3. **Quantize** ternary targets in the selected mode (`Quantizer.quantize/2`), pack trits 10-per-word, record per-channel scales.
+4. **Export** a version-2 `.tbin` mixing ternary records and FP16 records, with provenance metadata.
+
+### 13.6.3 Core Modules
 
 The following Elixir modules form the complete conversion toolchain. Each module is production-ready with specs, docs, and error handling.
 
@@ -1781,7 +1808,22 @@ end
 
 ---
 
-### 13.6.3 Running the Conversion Tool
+### 13.6.4 Running the Conversion Tool
+
+See §13.6.2 for the CLI. Library-level usage of the full pipeline:
+
+```elixir
+# End-to-end conversion with architecture policy + quantization mode
+{:ok, summary} =
+  TernaryConverter.Pipeline.run("model.safetensors", "model.tbin",
+    arch: :llama,      # :llama | :gpt2 | :bert | :vit | :generic
+    mode: :absmean     # :absmean | :twn | :delta
+  )
+
+summary.ternary_layers  # list of %TernaryConverter.Layer{}
+summary.fp16_layers     # list of %TernaryConverter.RawLayer{} (kept dense)
+summary.stats           # sparsity, compression, sizes
+```
 
 ```bash
 # Install dependencies
@@ -1838,7 +1880,7 @@ defmodule Mix.Tasks.Convert do
     delta = Keyword.get(opts, :delta, 0.5)
 
     IO.puts("Loading model from #{input_path}...")
-    {:ok, weights} = TernaryConverter.ModelLoader.load(input_path)
+    {:ok, weights, _metadata} = TernaryConverter.Safetensors.read(input_path)
 
     IO.puts("Converting #{map_size(weights)} layers to ternary (delta=#{delta})...")
 

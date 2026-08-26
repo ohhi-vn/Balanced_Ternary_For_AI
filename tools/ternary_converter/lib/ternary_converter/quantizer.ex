@@ -2,16 +2,22 @@ defmodule TernaryConverter.Quantizer do
   @moduledoc """
   Converts full-precision weight tensors to balanced ternary {-1, 0, +1}.
 
-  Supports:
-  - Fixed threshold (delta) ternarization
-  - Per-channel MSE-optimal scale factors
-  - Automatic threshold selection (statistical, grid search)
-  - Weight clipping for outlier handling
-  - Quality metrics (sparsity, MSE, SQNR)
+  Three quantization modes are supported (see `quantize/2`):
+
+    - `:delta`   — user-supplied threshold, per-channel MSE-optimal scales
+    - `:twn`     — Ternary Weight Networks rule: Δ = 0.7 × mean(|W|)
+    - `:absmean` — BitNet b1.58 rule: normalize by mean(|W|), round to nearest trit
+
+  Also provides automatic threshold selection via bisection on target
+  sparsity, outlier-clipped scale calibration, and quality metrics
+  (sparsity, MSE, SQNR).
   """
 
   @type tensor :: Nx.Tensor.t()
   @type trit :: -1 | 0 | 1
+  @type mode :: :delta | :twn | :absmean
+
+  @twn_threshold_ratio 0.7
 
   # ── Ternarization ────────────────────────────────────────────
 
@@ -67,9 +73,14 @@ defmodule TernaryConverter.Quantizer do
   """
   @spec compute_scales(tensor(), float()) :: tensor()
   def compute_scales(weights, delta) do
+    # Least squares: for fixed T, minimize ‖W_j − α_j·T_j‖² per row j.
+    # Setting the derivative to zero gives α_j = (W_j·T_j)/(T_j·T_j).
     ternary = ternarize(weights, delta)
     dot = Nx.sum(Nx.multiply(weights, ternary), axes: [1])
     norm = Nx.sum(Nx.pow(ternary, 2), axes: [1])
+
+    # A channel with no surviving trits (norm = 0) is dead; substitute
+    # 1.0 so the division yields scale 0 instead of NaN.
     safe_norm = Nx.select(Nx.greater(norm, 0.0), norm, Nx.tensor(1.0))
     Nx.divide(dot, safe_norm)
   end
@@ -96,39 +107,149 @@ defmodule TernaryConverter.Quantizer do
     compute_scales(clipped, delta)
   end
 
+  # ── Quantization Modes ───────────────────────────────────────
+
+  @doc """
+  Quantize a weight tensor to trits plus per-channel scales.
+
+  Returns `{trits, scales, delta}` where:
+
+    - `trits` — s64 tensor of {-1, 0, +1}, same shape as `w`
+    - `scales` — flat list of per-channel f32 scale factors
+    - `delta` — the effective decision threshold used
+
+  ## Modes
+
+    - `:delta` — threshold at the given `:delta`, per-channel MSE-optimal
+      scales αⱼ = (Wⱼ·Tⱼ)/(Tⱼ·Tⱼ)
+    - `:twn` — Ternary Weight Networks rule: Δ = 0.7 × mean(|W|), then
+      MSE-optimal per-channel scales (Li & Liu, 2016)
+    - `:absmean` — BitNet b1.58 rule: T = roundclip(W / mean(|W|), -1, +1),
+      single shared scale γ = mean(|W|) for every channel (Ma et al., 2024)
+
+  ## Options
+
+    - `:mode` — `:delta` | `:twn` | `:absmean` (default: `:twn`)
+    - `:delta` — threshold used when mode is `:delta`
+  """
+  @spec quantize(tensor(), keyword()) :: {tensor(), [float()], float()}
+  def quantize(w, opts \\ []) do
+    # Explicit :mode wins. Otherwise an explicit :delta means fixed-threshold
+    # mode (backward compatible). Default is the TWN rule.
+    mode =
+      Keyword.get_lazy(opts, :mode, fn ->
+        if Keyword.has_key?(opts, :delta), do: :delta, else: :twn
+      end)
+
+    case mode do
+      :delta ->
+        delta = Keyword.get(opts, :delta, 0.5)
+        {ternarize(w, delta), to_scale_list(compute_scales(w, delta)), delta}
+
+      :twn ->
+        # Derive the threshold from the data, then reuse the standard
+        # least-squares scale calibration on top of it.
+        delta = twn_delta(w)
+        {ternarize(w, delta), to_scale_list(compute_scales(w, delta)), delta}
+
+      :absmean ->
+        # BitNet b1.58: normalize by the mean absolute weight and round
+        # to the nearest trit. There is no explicit threshold — values
+        # within ±γ/2 round to 0 — so we report 0.5·γ as the effective
+        # decision boundary for metadata purposes.
+        gamma = w |> Nx.abs() |> Nx.mean() |> Nx.to_number()
+
+        trits =
+          w
+          |> Nx.divide(max(gamma, 1.0e-12))
+          |> Nx.round()
+          |> Nx.clip(-1.0, 1.0)
+          |> Nx.as_type(:s64)
+
+        # Every output channel shares γ; storing one value per channel
+        # keeps the Layer representation uniform across modes.
+        {trits, List.duplicate(gamma, elem(Nx.shape(w), 0)), 0.5 * gamma}
+    end
+  end
+
+  @doc """
+  TWN threshold rule: Δ = 0.7 × mean(|W|).
+
+  Near-optimal for approximately Gaussian weight distributions and the
+  standard choice when no calibration data is available.
+  """
+  @spec twn_delta(tensor()) :: float()
+  def twn_delta(w) do
+    w
+    |> Nx.abs()
+    |> Nx.mean()
+    |> Nx.multiply(@twn_threshold_ratio)
+    |> Nx.to_number()
+  end
+
+  defp to_scale_list(scales), do: Nx.to_flat_list(Nx.as_type(scales, :f32))
+
   # ── Automatic Threshold Selection ────────────────────────────
 
   @doc """
-  Automatic threshold selection via statistical analysis.
+  Find the threshold that yields a target zero-fraction via bisection.
 
-  Chooses delta to achieve a target sparsity level based on the
-  weight distribution. Uses binary search starting from a Gaussian estimate.
+  The fraction of weights in [-Δ, Δ] increases monotonically with Δ, so
+  the target sparsity has a unique root on [0, 4σ]. Returns
+  `{delta, actual_sparsity}`.
 
   Returns `{optimal_delta, actual_sparsity}`.
   """
   @spec auto_threshold(tensor(), float()) :: {float(), float()}
-  def auto_threshold(weights, target_sparsity \\ 0.5) do
-    std = Nx.standard_deviation(weights) |> Nx.to_number()
+  def auto_threshold(weights, target_sparsity \\ 0.5)
 
-    # Gaussian estimate: Δ ≈ σ * √2 * erf(1 - target_sparsity)
-    initial_delta = std * :math.sqrt(2) * :math.erf(1 - target_sparsity)
+  def auto_threshold(_weights, target) when target <= 0.0, do: {0.0, 0.0}
 
-    refine_delta(weights, initial_delta, target_sparsity, 0.01, 20)
+  def auto_threshold(weights, target_sparsity) do
+    total = Nx.size(weights) |> Nx.to_number()
+
+    if total == 0 do
+      {0.0, 0.0}
+    else
+      hi = 4.0 * (Nx.standard_deviation(weights) |> Nx.to_number())
+      zero_at_hi = zero_fraction(weights, hi, total)
+
+      if zero_at_hi < target_sparsity do
+        {hi, zero_at_hi}
+      else
+        bisect(weights, 0.0, hi, target_sparsity, total, 40)
+      end
+    end
   end
 
-  defp refine_delta(_weights, delta, _target, _tolerance, 0), do: {delta, 0.0}
+  defp bisect(weights, lo, hi, target, total, iterations) do
+    # Invariant: z(lo) < target ≤ z(hi), where z(Δ) is the zero fraction.
+    # Each step halves the interval; ~12 iterations suffice for 0.1%
+    # precision on a [0, 4σ] range, so the 40-iteration cap is generous.
+    mid = (lo + hi) / 2
+    sparsity = zero_fraction(weights, mid, total)
 
-  defp refine_delta(weights, delta, target, tolerance, iterations) do
-    t = ternarize(weights, delta)
-    actual = Nx.divide(Nx.sum(Nx.equal(t, 0)), Nx.size(t)) |> Nx.to_number()
-    error = actual - target
+    cond do
+      abs(sparsity - target) < 1.0e-3 or iterations == 0 ->
+        {mid, sparsity}
 
-    if abs(error) < tolerance do
-      {delta, actual}
-    else
-      adjustment = if error > 0, do: delta * 0.95, else: delta * 1.05
-      refine_delta(weights, adjustment, target, tolerance, iterations - 1)
+      sparsity < target ->
+        # Too few zeros — widen the dead zone.
+        bisect(weights, mid, hi, target, total, iterations - 1)
+
+      true ->
+        # Too many zeros — narrow it.
+        bisect(weights, lo, mid, target, total, iterations - 1)
     end
+  end
+
+  defp zero_fraction(weights, delta, total) do
+    weights
+    |> ternarize(delta)
+    |> Nx.equal(0)
+    |> Nx.sum()
+    |> Nx.divide(total)
+    |> Nx.to_number()
   end
 
   # ── Quality Metrics ──────────────────────────────────────────

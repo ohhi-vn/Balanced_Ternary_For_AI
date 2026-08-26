@@ -3,29 +3,50 @@ defmodule TernaryConverter.Exporter do
   Exports and imports ternary models to/from .tbin binary format.
 
   The .tbin format:
-    [Header][Layer 1][Layer 2]...[Layer N]
 
-    Header:
-      magic:       4 bytes  ("TBN\\0")
-      version:     4 bytes  (uint32)
-      num_layers:  4 bytes  (uint32)
-      meta_len:    4 bytes  (uint32)
-      metadata:    meta_len bytes (UTF-8 JSON)
+      [Header][Record 1][Record 2]...[Record N]
 
-    Per layer: binary serialized TernaryConverter.Layer
+      Header:
+        magic:       4 bytes   ("TBN\\0")
+        version:     4 bytes   (uint32; 2 as of mixed-precision support)
+        num_layers:  4 bytes   (uint32)
+        meta_len:    4 bytes   (uint32)
+        metadata:    meta_len bytes (UTF-8 JSON)
+
+      Record (version >= 2):
+        kind:        1 byte    (0 = ternary, 1 = raw FP16)
+        size:        4 bytes   (uint32)
+        payload:     size bytes
+          - ternary: TernaryConverter.Layer.to_binary/1
+          - raw:     TernaryConverter.RawLayer.to_binary/1
+
+      Record (version 1):
+        size:        4 bytes   (uint32)
+        payload:     size bytes (ternary layer only)
+
+  Version 1 files remain readable; they are written as version 2 on the
+  next export.
   """
 
   @tbin_magic "TBN\0"
-  @tbin_version 1
+  @tbin_version 2
+
+  @kind_ternary 0
+  @kind_raw_fp16 1
 
   @doc """
-  Export a list of ternary layers to a .tbin file.
+  Export a list of layers to a .tbin file.
+
+  Layers may be `TernaryConverter.Layer` (ternary) or
+  `TernaryConverter.RawLayer` (kept at FP16); each is tagged with its
+  record kind.
 
   ## Options
+
     - `:metadata` — Map of metadata (model name, version, etc.)
     - `:compress` — Whether to compress with gzip (default: false)
   """
-  @spec export([TernaryConverter.Layer.t()], String.t(), keyword()) :: :ok | {:error, term()}
+  @spec export([struct()], String.t(), keyword()) :: :ok | {:error, term()}
   def export(layers, output_path, opts \\ []) do
     metadata = Keyword.get(opts, :metadata, %{})
     compress = Keyword.get(opts, :compress, false)
@@ -50,13 +71,16 @@ defmodule TernaryConverter.Exporter do
   defp build_tbin(layers, metadata, compress) do
     metadata_binary = Jason.encode!(metadata)
 
-    layer_binaries =
-      Enum.map(layers, fn layer ->
-        bin = TernaryConverter.Layer.to_binary(layer)
-        <<byte_size(bin)::32, bin::binary>>
-      end)
+    records =
+      Enum.map(layers, fn
+        %TernaryConverter.Layer{} = layer ->
+          payload = TernaryConverter.Layer.to_binary(layer)
+          <<@kind_ternary::8, byte_size(payload)::32, payload::binary>>
 
-    layers_binary = :erlang.list_to_binary(layer_binaries)
+        %TernaryConverter.RawLayer{} = layer ->
+          payload = TernaryConverter.RawLayer.to_binary(layer)
+          <<@kind_raw_fp16::8, byte_size(payload)::32, payload::binary>>
+      end)
 
     binary = <<
       @tbin_magic::binary,
@@ -64,7 +88,7 @@ defmodule TernaryConverter.Exporter do
       length(layers)::32,
       byte_size(metadata_binary)::32,
       metadata_binary::binary,
-      layers_binary::binary
+      IO.iodata_to_binary(records)::binary
     >>
 
     if compress, do: :zlib.gzip(binary), else: binary
@@ -74,7 +98,7 @@ defmodule TernaryConverter.Exporter do
   Load a .tbin file back into a list of layers.
   """
   @spec load(String.t()) ::
-          {:ok, [TernaryConverter.Layer.t()], map()} | {:error, term()}
+          {:ok, [struct()], map()} | {:error, term()}
   def load(input_path) do
     with {:ok, binary} <- File.read(input_path),
          binary <- maybe_decompress(binary),
@@ -94,29 +118,43 @@ defmodule TernaryConverter.Exporter do
 
   defp parse_tbin(<<
          @tbin_magic::binary,
-         @tbin_version::32,
+         version::32,
          num_layers::32,
          meta_len::32,
          metadata_binary::binary-size(meta_len),
          layers_binary::binary
-       >>) do
+       >>)
+       when version in [1, 2] do
     metadata = Jason.decode!(metadata_binary)
-    layers = parse_layers(layers_binary, num_layers, [])
+    layers = parse_records(layers_binary, num_layers, version, [])
     {:ok, Enum.reverse(layers), metadata}
+  rescue
+    e -> {:error, Exception.message(e)}
   end
 
   defp parse_tbin(_), do: {:error, "invalid .tbin format"}
 
-  defp parse_layers(<<>>, 0, acc), do: acc
+  defp parse_records(<<>>, 0, _version, acc), do: acc
 
-  defp parse_layers(binary, remaining, acc) do
-    {layer, rest} = parse_single_layer(binary)
-    parse_layers(rest, remaining - 1, [layer | acc])
-  end
+  defp parse_records(binary, remaining, version, acc) do
+    {layer, rest} =
+      case version do
+        1 ->
+          <<size::32, payload::binary-size(size), rest::binary>> = binary
+          {TernaryConverter.Layer.from_binary(payload), rest}
 
-  defp parse_single_layer(binary) do
-    <<layer_size::32, layer_binary::binary-size(layer_size), rest::binary>> = binary
-    layer = TernaryConverter.Layer.from_binary(layer_binary)
-    {layer, rest}
+        2 ->
+          <<kind::8, size::32, payload::binary-size(size), rest::binary>> = binary
+
+          layer =
+            case kind do
+              @kind_ternary -> TernaryConverter.Layer.from_binary(payload)
+              @kind_raw_fp16 -> elem(TernaryConverter.RawLayer.from_binary(payload), 0)
+            end
+
+          {layer, rest}
+      end
+
+    parse_records(rest, remaining - 1, version, [layer | acc])
   end
 end

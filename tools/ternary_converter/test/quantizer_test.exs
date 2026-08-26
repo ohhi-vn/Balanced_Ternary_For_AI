@@ -80,4 +80,99 @@ defmodule TernaryConverter.QuantizerTest do
       assert metrics.mse >= 0.0
     end
   end
+
+  describe "twn_delta/1" do
+    test "is 0.7 times the mean absolute weight" do
+      w = Nx.tensor([[1.0, -1.0, 2.0], [-4.0, 0.5, 3.5]])
+      expected = w |> Nx.abs() |> Nx.mean() |> Nx.multiply(0.7) |> Nx.to_number()
+      assert_in_delta Quantizer.twn_delta(w), expected, 1.0e-6
+    end
+  end
+
+  describe "auto_threshold/2" do
+    test "reaches target sparsity for Gaussian weights" do
+      key = Nx.Random.key(7)
+      {w, _} = Nx.Random.normal(key, 0.0, 1.0, shape: {64, 128})
+
+      {delta, actual} = Quantizer.auto_threshold(w, 0.5)
+      assert delta > 0.0
+      assert abs(actual - 0.5) < 0.02
+    end
+
+    test "higher target sparsity needs larger delta" do
+      key = Nx.Random.key(8)
+      {w, _} = Nx.Random.normal(key, 0.0, 1.0, shape: {32, 64})
+
+      {d50, _} = Quantizer.auto_threshold(w, 0.5)
+      {d75, _} = Quantizer.auto_threshold(w, 0.75)
+      assert d75 > d50
+    end
+
+    test "target 0 returns zero threshold" do
+      assert Quantizer.auto_threshold(Nx.tensor([1.0, 2.0]), 0.0) == {0.0, 0.0}
+    end
+  end
+
+  describe "quantize/2 modes" do
+    setup do
+      key = Nx.Random.key(11)
+      # Gaussian weights with a clear structure
+      {w, _} = Nx.Random.normal(key, 0.0, 0.05, shape: {16, 64})
+      {:ok, w: w}
+    end
+
+    test "explicit delta mode uses the given threshold", %{w: w} do
+      {trits, scales, delta} = Quantizer.quantize(w, mode: :delta, delta: 0.08)
+      assert delta == 0.08
+      assert length(scales) == 16
+      values = Nx.to_flat_list(trits) |> Enum.uniq()
+      assert Enum.all?(values, &(&1 in [-1, 0, 1]))
+    end
+
+    test "passing only delta keeps backward-compatible fixed-delta behavior", %{w: w} do
+      {trits_a, scales_a, delta_a} = Quantizer.quantize(w, delta: 0.06)
+      {trits_b, scales_b, _} = Quantizer.quantize(w, mode: :delta, delta: 0.06)
+
+      assert trits_a == trits_b
+      assert scales_a == scales_b
+      assert delta_a == 0.06
+    end
+
+    test "twn mode derives threshold from mean absolute weight", %{w: w} do
+      {_trits, scales, delta} = Quantizer.quantize(w, mode: :twn)
+      assert_in_delta delta, Quantizer.twn_delta(w), 1.0e-6
+      assert length(scales) == 16
+      assert Enum.all?(scales, &(&1 != 0.0))
+    end
+
+    test "absmean mode normalizes by mean absolute weight", %{w: w} do
+      {trits, scales, _delta} = Quantizer.quantize(w, mode: :absmean)
+
+      gamma = Nx.mean(Nx.abs(w)) |> Nx.to_number()
+      # Single shared scale repeated per channel
+      assert Enum.uniq(scales) == [gamma]
+
+      values = Nx.to_flat_list(trits)
+      assert Enum.all?(values, &(&1 in [-1, 0, 1]))
+
+      # Reconstruction must beat the all-zero baseline (positive SQNR)
+      reconstructed = Nx.multiply(trits, gamma)
+
+      mse =
+        w
+        |> Nx.subtract(reconstructed)
+        |> Nx.pow(2)
+        |> Nx.mean()
+        |> Nx.to_number()
+
+      signal = Nx.mean(Nx.pow(w, 2)) |> Nx.to_number()
+      assert 10 * :math.log10(signal / mse) > 3.0
+    end
+
+    test "default is twn mode", %{w: w} do
+      {_, _, default_delta} = Quantizer.quantize(w)
+      {_, _, twn_delta} = Quantizer.quantize(w, mode: :twn)
+      assert default_delta == twn_delta
+    end
+  end
 end

@@ -35,7 +35,9 @@ defmodule TernaryConverter.Layer do
   @doc """
   Create a TernaryLayer from a dense (FP32) weight matrix.
 
-  Automatically computes per-channel scale factors and packs weights.
+  Quantization is delegated to `TernaryConverter.Quantizer.quantize/2`;
+  pass `mode:` (`:delta`, `:twn`, `:absmean`) and `delta:` options
+  through. Automatically packs weights and records per-channel scales.
 
   ## Examples
 
@@ -48,29 +50,31 @@ defmodule TernaryConverter.Layer do
   """
   @spec from_dense(Nx.Tensor.t(), String.t(), keyword()) :: t()
   def from_dense(weight_tensor, name, opts \\ []) do
-    delta = Keyword.get(opts, :delta, 0.5)
-    {out_features, in_features} = Nx.shape(weight_tensor)
+    {out_features, _in_features} = Nx.shape(weight_tensor)
 
-    scales = Quantizer.compute_scales(weight_tensor, delta)
-    scales_list = Nx.to_flat_list(scales)
-    ternary = Quantizer.ternarize(weight_tensor, delta)
-
-    zeros = Nx.sum(Nx.equal(ternary, 0)) |> Nx.to_number()
-    total = Nx.size(ternary) |> Nx.to_number()
-    sparsity = zeros / total
-
-    packed = Packer.pack(ternary)
-    bias = List.duplicate(0.0, out_features)
+    {trits, scales, delta} = Quantizer.quantize(weight_tensor, opts)
+    sparsity = sparsity_of(trits)
+    packed = Packer.pack(trits)
 
     %__MODULE__{
       name: name,
       weight_packed: packed,
-      scales: scales_list,
-      bias: bias,
-      shape: {out_features, in_features},
+      scales: scales,
+      bias: List.duplicate(0.0, out_features),
+      shape: Nx.shape(weight_tensor),
       delta: delta,
       sparsity: sparsity
     }
+  end
+
+  defp sparsity_of(trits) do
+    total = Nx.size(trits) |> Nx.to_number()
+
+    trits
+    |> Nx.equal(0)
+    |> Nx.sum()
+    |> Nx.divide(total)
+    |> Nx.to_number()
   end
 
   @doc """
@@ -96,6 +100,10 @@ defmodule TernaryConverter.Layer do
 
     weight_rows = Enum.chunk_every(trits, in_features)
 
+    # The inner reduction is the hardware datapath: pass / negate / skip.
+    # No multiplication between weights and activations anywhere — the
+    # per-channel scale is applied once to the finished dot product,
+    # mirroring the ASIC's accumulator + scale unit.
     weight_rows
     |> Enum.zip(Enum.zip(layer.scales, layer.bias))
     |> Enum.map(fn {w_row, {scale, bias}} ->
@@ -136,7 +144,18 @@ defmodule TernaryConverter.Layer do
   end
 
   @doc """
-  Serialize layer to binary (.tbin format).
+  Serialize layer to binary (.tbin record payload).
+
+  Layout (all integers big-endian):
+
+      name_len::16 | name | out::32 | in::32
+      delta::float-32 | sparsity::float-32
+      num_scales::32 | scales (num_scales × float-16)
+      num_biases::32 | biases  (num_biases × float-16)
+      packed_size::32 | packed trits (see Packer)
+
+  Scales/biases use half precision: they are calibration constants, and
+  f16 halves their footprint at negligible accuracy cost.
   """
   @spec to_binary(t()) :: binary()
   def to_binary(%__MODULE__{} = layer) do
@@ -163,6 +182,10 @@ defmodule TernaryConverter.Layer do
 
   @doc """
   Deserialize layer from binary.
+
+  Mirrors `to_binary/1` field-for-field. The pattern match is total:
+  a truncated or malformed payload fails to match and raises, which the
+  Exporter wraps into an error tuple.
   """
   @spec from_binary(binary()) :: t()
   def from_binary(<<

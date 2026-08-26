@@ -7,6 +7,23 @@ defmodule TernaryConverter.Packer do
   - Sparse encoding: index + sign for high-sparsity layers
   - Round-trip verification
   - Compression ratio calculation
+
+  ## Dense word layout
+
+  Each group of 10 trits is shifted to base-3 digits via `trit + 1`
+  ({-1,0,+1} → {0,1,2}) and read **most-significant digit first**, so a
+  group's first weight occupies the highest-value position:
+
+      word = d₀·3⁹ + d₁·3⁸ + … + d₉·3⁰     where dᵢ = tritᵢ + 1
+
+  Since 3¹⁰ = 59_049 < 2¹⁶ = 65_536 every word fits in 16 bits (~90%
+  efficiency). Trailing weights of the final group are zero-padded.
+
+  ## Sparse layout
+
+  `<<count::32>>` followed by `count` entries of `<<index::15, sign::1>>`
+  (sign: 0 → +1, 1 → −1). Only wins above ~88–90% sparsity because an
+  entry costs 16 bits versus 1.6 bits per densely packed weight.
   """
 
   @trits_per_word 10
@@ -51,6 +68,9 @@ defmodule TernaryConverter.Packer do
   defp encode_word(trits) do
     trits
     |> Enum.map(&(&1 + 1))
+    # Reverse so the group's first trit becomes the most significant
+    # digit of the base-3 number — this makes unpack restore original
+    # order without a final reverse (see module doc for the layout).
     |> Enum.reverse()
     |> Enum.reduce(0, fn digit, acc -> acc * 3 + digit end)
     |> then(&<<&1::16-integer-native>>)
@@ -85,6 +105,9 @@ defmodule TernaryConverter.Packer do
 
   defp extract_digits(_v, 0, acc), do: Enum.reverse(acc)
 
+  # Peels least-significant base-3 digits one at a time; prepending each
+  # to `acc` leaves the result most-significant-first, matching the pack
+  # order (first weight = highest digit).
   defp extract_digits(v, n, acc) do
     extract_digits(div(v, 3), n - 1, [rem(v, 3) | acc])
   end
@@ -100,6 +123,9 @@ defmodule TernaryConverter.Packer do
   Format per entry (16 bits):
     - Index: 15 bits (position in flattened tensor, max 32767)
     - Sign:  1 bit  (0 for +1, 1 for -1)
+
+  A u32 count prefixes the entry list so `unpack_sparse/2` knows how
+  many entries to read without relying on binary length alone.
   """
   @spec pack_sparse(Nx.Tensor.t()) :: binary()
   def pack_sparse(tensor) do
