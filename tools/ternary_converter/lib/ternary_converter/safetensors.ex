@@ -68,7 +68,7 @@ defmodule TernaryConverter.Safetensors do
   @spec decode(binary()) :: {:ok, map(), map()} | {:error, term()}
   def decode(binary) when is_binary(binary) do
     with <<header_len::64-little, rest::binary>> when byte_size(rest) >= header_len <- binary,
-         <<header_json::binary-size(header_len), data::binary>> <- rest,
+         <<header_json::binary-size(^header_len), data::binary>> <- rest,
          {:ok, header} <- Jason.decode(header_json) do
       {entries, metadata} = split_header(header)
 

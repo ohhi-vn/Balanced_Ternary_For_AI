@@ -52,7 +52,7 @@ The zero trit is the key advantage: it encodes sparsity directly, turning near-z
 |------|-------|
 | [`details/13-model-conversion-guide.md`](details/13-model-conversion-guide.md) | PTQ/QAT pipelines, model-specific recipes, validation suite, Elixir conversion toolchain |
 | [`tools/ternary_converter/`](tools/ternary_converter/) | Full Elixir application: convert (safetensors → .tbin), demo, info, validate CLI + library API |
-| [`examples/ternary_accel/`](examples/ternary_accel/) | Ternary GEMM on NVIDIA CUDA (EXLA) and Apple Silicon MLX (EMLX) via Nx |
+| [`examples/ternary_accel.livemd`](examples/ternary_accel.livemd) | Ternary GEMM on NVIDIA CUDA (EXLA) and Apple Silicon MLX (EMLX) via Nx — Livebook |
 
 ### Feasibility Analysis
 
@@ -83,11 +83,11 @@ The zero trit is the key advantage: it encodes sparsity directly, turning near-z
 
 ### Examples
 
-| Directory | Content |
-|-----------|---------|
-| [`examples/ternary_pure/`](examples/ternary_pure/) | Pure Elixir demo: quantize → pack → forward pass → differential encoding |
-| [`examples/ternary_nx/`](examples/ternary_nx/) | Nx-based demo: tensor quantization → GEMM → sparsity analysis → packing |
-| [`examples/ternary_accel/`](examples/ternary_accel/) | GPU acceleration demo: ternary GEMM on CUDA (EXLA) and Apple Silicon (MLX), packed-trit decoding on device, throughput benchmark |
+| Notebook | Content |
+|----------|---------|
+| [`examples/ternary_pure.livemd`](examples/ternary_pure.livemd) | Pure Elixir Livebook: quantize → pack → forward pass → differential encoding |
+| [`examples/ternary_nx.livemd`](examples/ternary_nx.livemd) | Nx-based Livebook: tensor quantization → GEMM → sparsity analysis → packing → QAT simulation |
+| [`examples/ternary_accel.livemd`](examples/ternary_accel.livemd) | GPU acceleration Livebook: ternary GEMM on CUDA (EXLA) and Apple Silicon (MLX), packed-trit decoding on device, throughput benchmark |
 
 ## Target Application
 
@@ -122,29 +122,17 @@ mix run -e 'TernaryConverter.CLI.main(["convert", "--sparsity", "0.5", "--output
 
 ### Run on CUDA / Apple MLX
 
-```bash
-cd examples/ternary_accel
-mix deps.get
-mix run -e "TernaryAccel.run()"
-```
+Open [`examples/ternary_accel.livemd`](examples/ternary_accel.livemd) in [Livebook](https://livebook.dev). The setup cell installs Nx; add `{:exla, "~> 0.12"}` (CUDA) or `{:emlx, "~> 0.4"}` (Apple Silicon) for GPU backends.
 
-Decodes packed trits on-device and benchmarks ternary vs FP32 GEMM. See [the example](examples/ternary_accel/) for backend selection.
+Decodes packed trits on-device and benchmarks ternary vs FP32 GEMM. The notebook covers backend selection.
 
 ### Run the pure Elixir example
 
-```bash
-cd examples/ternary_pure
-mix deps.get
-mix run -e "TernaryPure.run_demo()"
-```
+Open [`examples/ternary_pure.livemd`](examples/ternary_pure.livemd) in [Livebook](https://livebook.dev) — no dependencies required.
 
 ### Run the Nx-based example
 
-```bash
-cd examples/ternary_nx
-mix deps.get
-mix run -e "TernaryNx.run_demo()"
-```
+Open [`examples/ternary_nx.livemd`](examples/ternary_nx.livemd) in [Livebook](https://livebook.dev) — the setup cell installs Nx.
 
 ## License
 

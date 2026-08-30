@@ -1,37 +1,45 @@
+# Ternary Accel — Balanced Ternary on Nx (CUDA / Apple MLX)
+
+## Section
+
+Runs the balanced-ternary pipeline **on GPU** through Nx:
+
+* quantizes weights on-device with the BitNet b1.58 **absmean** rule
+* stores trits as packed `u8` codes `{0,1,2}` → 4× less weight memory than FP32
+* decodes trits **on device** inside a compiled kernel and runs GEMM — the software analogue of the hardware add/sub/skip decoder from [`details/05-hardware-architecture.md`](details/05-hardware-architecture.md)
+* verifies accuracy against the FP32 reference and benchmarks dense vs ternary GEMM
+
+| Backend       | Library                                          | Requirements                   | Select               |
+| ------------- | ------------------------------------------------ | ------------------------------ | -------------------- |
+| NVIDIA CUDA   | [EXLA](https://hex.pm/packages/exla)             | NVIDIA GPU + CUDA build of XLA | `backend: :cuda`     |
+| Apple Silicon | [EMLX](https://hex.pm/packages/emlx) (Apple MLX) | macOS on M-series              | `backend: :mlx`      |
+| XLA CPU       | EXLA                                             | any                            | `backend: :exla_cpu` |
+| CPU fallback  | Nx.BinaryBackend                                 | any (always available)         | `backend: :binary`   |
+
+`TernaryAccel.run()` auto-detects in order: CUDA → MLX → XLA/CPU → binary. Unavailable backends fall back gracefully with a warning.
+
+On current GPUs the win is storage + bandwidth (4× with byte codes, ~6.3× with the 10-trits-per-16-bit packing); the multiplier-free compute path requires the custom accelerator described in [`details/12-custom-ternary-accelerator-design.md`](details/12-custom-ternary-accelerator-design.md).
+
+## Setup
+
+Installs Nx only — the CPU fallback runs anywhere. For GPU backends, add **one** of the commented deps to the `Mix.install` list above (or via Livebook's dependency manager):
+
+```elixir
+Mix.install([{:nx, "~> 0.12"}])
+
+# For NVIDIA CUDA:  {:exla, "~> 0.12"}  — fetch with XLA_TARGET=cuda120
+# For Apple MLX:    {:emlx, "~> 0.4"}   — macOS on Apple Silicon only
+```
+
+## Ternary kernels
+
+Compiled per-backend by `Nx.Defn` — the same code runs on CUDA, MLX, XLA/CPU and the binary backend.
+
+```elixir
 defmodule TernaryAccel do
   @moduledoc """
   Balanced-ternary inference on GPU via Nx — NVIDIA CUDA (EXLA) and
   Apple Silicon MLX (EMLX).
-
-  The demo runs the full ternary pipeline on the selected device:
-
-    1. Ternarize weights on-device with the BitNet b1.58 **absmean** rule
-       (see `concept.md` → "Quantization Theory")
-    2. Store the trits as packed u8 codes `{0, 1, 2}` — 1 byte/weight
-       instead of 4 bytes FP32
-    3. Decode trits *on device* inside a compiled kernel and run GEMM:
-       this is the software analogue of the hardware add/sub/skip decoder
-    4. Verify accuracy against the FP32 reference
-    5. Benchmark dense vs ternary GEMM end-to-end
-
-  On current GPUs the win is storage + bandwidth (4× with byte codes,
-  ~6.3× with the tool's 10-trits-per-16-bit packing); the multiplier-free
-  compute path requires the custom accelerator described in
-  `details/12-custom-ternary-accelerator-design.md`.
-
-  ## Usage
-
-      mix run -e "TernaryAccel.run()"                     # auto-detect backend
-      mix run -e "TernaryAccel.run(backend: :cuda)"       # force CUDA (EXLA)
-      mix run -e "TernaryAccel.run(backend: :mlx)"        # force Apple MLX
-      mix run -e "TernaryAccel.run(backend: :exla_cpu)"   # XLA on CPU
-      mix run -e "TernaryAccel.run(backend: :binary)"     # plain CPU
-
-  ## Backend requirements
-
-    - `:cuda` — `{:exla, "~> 0.12"}` compiled with CUDA support:
-      `XLA_TARGET=cuda120 mix deps.get && mix compile`
-    - `:mlx` — `{:emlx, "~> 0.4"}`, macOS on Apple Silicon only
   """
 
   import Nx.Defn
@@ -397,3 +405,84 @@ defmodule TernaryAccel do
     _, _ -> false
   end
 end
+```
+
+## Run the full pipeline
+
+```elixir
+TernaryAccel.run()
+```
+
+Force a specific backend with `TernaryAccel.run(backend: :mlx)` (Apple Silicon) or `TernaryAccel.run(backend: :cuda)` (NVIDIA GPU).
+
+## Step-by-step
+
+The same pipeline broken into cells, so intermediate values are inspectable.
+
+```elixir
+backend = TernaryAccel.select_backend(:auto)
+Nx.default_backend(backend.nx_backend)
+Nx.Defn.default_options(compiler: backend.compiler)
+
+# Shrink the demo on the CPU fallback — without compiled kernels, full-size
+# matrices would only measure interpreter overhead.
+{rows, cols, batch} =
+  if backend.name == :binary, do: {128, 256, 8}, else: {2048, 4096, 256}
+
+%{backend: backend.name, platform: backend.platform, compiled_kernels?: backend.name != :binary}
+```
+
+```elixir
+key = Nx.Random.key(42)
+{w, _} = Nx.Random.normal(key, 0.0, 0.02, shape: {rows, cols}, type: :f32)
+
+{codes, scales, gamma} = TernaryAccel.quantize_absmean(w)
+
+%{
+  absmean_gamma: Float.round(Nx.to_number(gamma), 6),
+  sparsity: Float.round(Nx.mean(Nx.equal(codes, 1)) |> Nx.to_number() |> then(&(&1 * 100)), 2),
+  weight_memory: "#{rows * cols * 4} B (f32) → #{rows * cols} B (u8 codes), 4× smaller"
+}
+```
+
+```elixir
+{x, _} = Nx.Random.normal(key, 0.0, 1.0, shape: {batch, cols}, type: :f32)
+
+y_ref = TernaryAccel.dense_forward(x, w)
+y_tri = TernaryAccel.ternary_forward(x, codes, scales)
+
+cos = fn a, b ->
+  num = a |> Nx.multiply(b) |> Nx.sum() |> Nx.to_number()
+  na = :math.sqrt(a |> Nx.pow(2) |> Nx.sum() |> Nx.to_number())
+  nb = :math.sqrt(b |> Nx.pow(2) |> Nx.sum() |> Nx.to_number())
+  num / max(na * nb, 1.0e-9)
+end
+
+%{
+  y_ref_shape: Nx.shape(y_ref),
+  y_tri_shape: Nx.shape(y_tri),
+  cosine_similarity: Float.round(cos.(y_ref, y_tri), 5)
+}
+```
+
+## Sanity checks
+
+Key invariants from the original test suite — every entry must be `true`.
+
+```elixir
+{chk_codes, chk_scales, chk_gamma} =
+  TernaryAccel.quantize_absmean(Nx.tensor([[0.4, -0.2, 0.05, 0.3, -0.5, 0.0]]))
+
+expected_gamma = chk_gamma |> Nx.to_number()
+
+[
+  absmean_matches_bitnet_rule:
+    Nx.to_flat_list(chk_codes) == [2, 0, 1, 2, 0, 1] and
+      Nx.to_flat_list(chk_scales) == [expected_gamma],
+  decode_restores_scaled_trits:
+    Nx.to_flat_list(TernaryAccel.decode_weights(Nx.tensor([[2, 1, 0]]), Nx.tensor([0.5]))) ==
+      [0.5, 0.0, -0.5],
+  run_completes_end_to_end:
+    TernaryAccel.run(backend: :binary, rows: 64, cols: 128, batch: 8, iters: 2) == :ok
+]
+```

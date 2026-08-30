@@ -83,13 +83,13 @@ defmodule TernaryConverter.RawLayer do
   @spec from_binary(binary()) :: {t(), binary()}
   def from_binary(binary) do
     <<name_len::16, rest::binary>> = binary
-    <<name::binary-size(name_len), ndims::8, rest::binary>> = rest
-    <<dims_bin::binary-size(ndims * 4), data_and_rest::binary>> = rest
+    <<name::binary-size(^name_len), ndims::8, rest::binary>> = rest
+    <<dims_bin::binary-size(^ndims * 4), data_and_rest::binary>> = rest
 
     dims = for <<d::32 <- dims_bin>>, do: d
 
     flat = Enum.product(dims)
-    <<data::binary-size(flat * 2), rest::binary>> = data_and_rest
+    <<data::binary-size(^flat * 2), rest::binary>> = data_and_rest
 
     {
       %__MODULE__{

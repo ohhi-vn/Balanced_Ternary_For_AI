@@ -1,0 +1,407 @@
+# Ternary Nx — Ternary Quantization and GEMM with Nx
+
+## Section
+
+Nx-tensor demo of the balanced-ternary pipeline:
+
+1. Create random weight and activation tensors
+2. Quantize weights to ternary `{-1, 0, +1}`
+3. Run ternary GEMM with per-channel scales
+4. Measure sparsity and effective MACs
+5. Pack to compact binary (10 trits per 16-bit word)
+6. Simulate QAT (quantization-aware training) with a straight-through estimator
+
+See [`details/04-storage-format.md`](details/04-storage-format.md) for the packing scheme and [`details/03-training.md`](details/03-training.md) for QAT theory.
+
+## Setup
+
+```elixir
+Mix.install([{:nx, "~> 0.13"}])
+```
+
+```elixir
+Nx.default_backend(Nx.BinaryBackend)
+```
+
+## Quantizer
+
+Converts full-precision tensors into ternary `{-1, 0, +1}` using plain Nx operations.
+
+```elixir
+defmodule TernaryNx.Quantizer do
+  @moduledoc """
+  Quantizer — converts full-precision tensors into ternary {-1, 0, +1}.
+
+  Uses plain Nx tensor operations (not Nx.Defn) for broad compatibility.
+  """
+
+  @doc """
+  Ternarize a tensor element-wise with a threshold `delta`.
+
+  Values greater than `delta` → 1.0
+  Values between [-delta, delta] → 0.0
+  Values less than `-delta` → -1.0
+  """
+  def ternarize(tensor, delta) do
+    tensor
+    |> Nx.greater(delta)
+    |> Nx.as_type(:f32)
+    |> then(fn pos ->
+      neg = Nx.less(tensor, Nx.negate(delta)) |> Nx.as_type(:f32) |> Nx.multiply(-1.0)
+      Nx.add(pos, neg)
+    end)
+  end
+
+  @doc """
+  Convenience wrapper — same as `ternarize/2`.
+  """
+  def ternarize_layer(weight_tensor, delta) do
+    ternarize(weight_tensor, delta)
+  end
+
+  @doc """
+  Compute per-channel MSE-optimal scale factors.
+
+  For each row j: scale_j = sum(W_j * T_j) / sum(T_j * T_j)
+
+  where T is the ternarized weight matrix.
+  """
+  def compute_scales(weights, delta) do
+    ternary = ternarize(weights, delta)
+
+    dot = Nx.sum(Nx.multiply(weights, ternary), axes: [1])
+    norm = Nx.sum(Nx.pow(ternary, 2), axes: [1])
+
+    # Avoid division by zero — use 1.0 where norm == 0
+    safe_norm = Nx.select(Nx.greater(norm, 0.0), norm, 1.0)
+    Nx.divide(dot, safe_norm)
+  end
+end
+```
+
+## MAC — ternary GEMM and sparsity
+
+```elixir
+defmodule TernaryNx.Mac do
+  @moduledoc """
+  MAC (Multiply-Accumulate) operations for ternary neural network layers.
+
+  Implements a ternary GEMM: Y = (scales * ternary_weight) @ activations^T
+  plus sparsity analysis utilities.
+  """
+
+  @doc """
+  Full ternary GEMM forward pass.
+
+  Computes: output = (scales .* ternary_weights) @ activations
+
+  - `ternary_weights`: tensor of values in {-1, 0, 1}, shape {out_features, in_features}
+  - `activations`: f32 tensor, shape {batch, in_features}
+  - `scales`: f32 tensor, shape {out_features} — per-output-channel scale factors
+
+  Returns f32 tensor of shape {batch, out_features}.
+  """
+  def ternary_gemm(ternary_weights, activations, scales) do
+    # Expand scales to {out_features, 1} for broadcasting
+    scaled_weights =
+      ternary_weights
+      |> Nx.multiply(Nx.new_axis(scales, 1))
+
+    # Matrix multiply: (batch, in_features) @ (in_features, out_features)
+    # We store weights as {out_features, in_features}, so transpose
+    Nx.dot(activations, Nx.transpose(scaled_weights))
+  end
+
+  @doc """
+  Compute the fraction of zero entries in a tensor.
+  """
+  def zero_sparsity(tensor) do
+    total = Nx.size(tensor) |> then(&max(&1, 1))
+    zeros = Nx.sum(Nx.equal(tensor, 0.0)) |> Nx.to_number()
+    zeros / total
+  end
+
+  @doc """
+  Count effective non-zero MACs (non-zero entries) in a ternary weight tensor.
+  """
+  def effective_macs(tensor) do
+    Nx.sum(Nx.not_equal(tensor, 0.0)) |> Nx.to_number()
+  end
+end
+```
+
+## Storage — compact packing
+
+Packs 10 trits into a 16-bit word (base-3 encoding).
+
+```elixir
+defmodule TernaryNx.Storage do
+  @moduledoc """
+  Compact binary packing/unpacking for ternary {-1, 0, 1} tensors.
+
+  Packs 10 trits into a 16-bit word (base-3 encoding).
+  See Balanced_Ternary/details/04-storage-format.md for the scheme.
+  """
+
+  @trits_per_word 10
+
+  @doc """
+  Pack an Nx ternary tensor (values in {-1.0, 0.0, 1.0}) into a compact binary.
+
+  Returns a binary where every 10 elements are packed into 2 bytes (16 bits).
+  The tensor is flattened row-major; trailing elements are zero-padded.
+  """
+  def pack_nx(tensor) do
+    tensor
+    |> Nx.to_flat_list()
+    |> Enum.map(&trunc/1)
+    |> pack_trits()
+    |> :erlang.list_to_binary()
+  end
+
+  @doc """
+  Unpack a packed binary back into an Nx tensor of the given shape.
+
+  The binary must have been produced by `pack_nx/1`.
+  """
+  def unpack_nx(binary, shape) do
+    words = for <<word::16-integer-native <- binary>>, do: word
+
+    trits =
+      words
+      |> Enum.flat_map(&unpack_word/1)
+
+    total = Tuple.product(shape)
+    trimmed = Enum.take(trits, total)
+    padded = trimmed ++ List.duplicate(0.0, total - length(trimmed))
+
+    Nx.tensor(padded, type: :f32) |> Nx.reshape(shape)
+  end
+
+  # ── Internal packing ──────────────────────────────────────────
+
+  defp pack_trits(trits) do
+    trits
+    |> Enum.chunk_every(@trits_per_word)
+    |> Enum.map(fn chunk ->
+      padded = chunk ++ List.duplicate(0, @trits_per_word - length(chunk))
+      encode_word(padded)
+    end)
+  end
+
+  defp encode_word(trits) do
+    trits
+    # shift: -1→0, 0→1, +1→2
+    |> Enum.map(&(&1 + 1))
+    |> Enum.reduce(0, fn digit, acc -> acc * 3 + digit end)
+    |> then(&<<&1::16-integer-native>>)
+  end
+
+  defp unpack_word(word) do
+    digits = extract_base3_digits(word, @trits_per_word, [])
+
+    Enum.map(digits, fn
+      0 -> -1.0
+      1 -> 0.0
+      2 -> 1.0
+    end)
+  end
+
+  defp extract_base3_digits(_v, n, acc) when length(acc) == n, do: acc
+
+  defp extract_base3_digits(v, n, acc) do
+    extract_base3_digits(div(v, 3), n, [rem(v, 3) | acc])
+  end
+end
+```
+
+## QAT training helpers
+
+Straight-through estimator forward pass, sparsity loss, and SGD update.
+
+```elixir
+defmodule TernaryNx.Training do
+  @moduledoc """
+  QAT (Quantization-Aware Training) simulation helpers.
+
+  Provides a straight-through estimator (STE) forward pass, sparsity loss,
+  and a simple SGD update step — all using plain Nx tensor operations.
+  """
+
+  alias TernaryNx.Quantizer
+
+  @doc """
+  STE forward pass: quantize weights in the forward pass but let gradients
+  flow through un-quantized in the backward pass.
+
+  Returns `{result, quantized_weights}`.
+
+  - `w_shadow`: full-precision shadow weights, shape {out, in}
+  - `scale`: per-channel scale vector, shape {out}
+  - `x`: activations, shape {batch, in}
+  - `delta`: quantization threshold
+  """
+  def forward(w_shadow, scale, x, delta) do
+    w_tern = Quantizer.ternarize_layer(w_shadow, delta)
+
+    scaled_w =
+      w_tern
+      |> Nx.multiply(Nx.new_axis(scale, 1))
+
+    result = Nx.dot(x, Nx.transpose(scaled_w))
+    {result, w_tern}
+  end
+
+  @doc """
+  Sparsity regularization loss: encourages more weights to be exactly zero.
+
+  Uses a differentiable approximation:
+    loss = mean(tanh(|w| / delta))
+
+  When |w| is small (below delta), tanh is ~|w|/delta → pushes toward zero.
+  When |w| is large, tanh saturates at 1 → no gradient.
+  """
+  def sparsity_loss(w, delta) do
+    w
+    |> Nx.abs()
+    |> Nx.divide(delta)
+    |> Nx.tanh()
+    |> Nx.mean()
+  end
+
+  @doc """
+  Simple SGD weight update: w = w - lr * grad
+  """
+  def update_weights(w, grad, lr) do
+    Nx.subtract(w, Nx.multiply(grad, lr))
+  end
+end
+```
+
+## Demo — quantize, GEMM, pack
+
+```elixir
+rows = 64
+cols = 128
+batch = 16
+delta = 0.5
+
+key = Nx.Random.key(42)
+{w_raw, key2} = Nx.Random.uniform(key, shape: {rows, cols}, type: :f32)
+w = Nx.subtract(Nx.multiply(w_raw, 2.0), 1.0)
+{x_raw, _key} = Nx.Random.uniform(key2, shape: {batch, cols}, type: :f32)
+x = Nx.subtract(Nx.multiply(x_raw, 2.0), 1.0)
+
+%{weight_shape: Nx.shape(w), activation_shape: Nx.shape(x)}
+```
+
+```elixir
+w_tern = TernaryNx.Quantizer.ternarize_layer(w, delta)
+```
+
+```elixir
+scales = TernaryNx.Quantizer.compute_scales(w, delta)
+result = TernaryNx.Mac.ternary_gemm(w_tern, x, scales)
+
+nonzero = TernaryNx.Mac.effective_macs(w_tern)
+total = Nx.size(w_tern)
+
+%{
+  gemm_output_shape: Nx.shape(result),
+  sparsity: Float.round(TernaryNx.Mac.zero_sparsity(w_tern) * 100, 2),
+  effective_macs: "#{nonzero} / #{total} (#{Float.round(nonzero / total * 100, 2)}%)"
+}
+```
+
+```elixir
+packed = TernaryNx.Storage.pack_nx(w_tern)
+unpacked = TernaryNx.Storage.unpack_nx(packed, {rows, cols})
+
+%{
+  packed_bytes: byte_size(packed),
+  original_f32_bytes: rows * cols * 4,
+  round_trip_match: Nx.to_number(Nx.all_close(w_tern, unpacked))
+}
+```
+
+## Demo — QAT simulation
+
+```elixir
+w_small = Nx.tensor([[0.1, -0.2, 1.5, -0.05]])
+scale = Nx.tensor([1.0, 1.0, 1.0, 1.0])
+x_small = Nx.tensor([[0.5, 1.0, -0.5, 2.0]])
+
+{qat_result, w_tern_small} = TernaryNx.Training.forward(w_small, scale, x_small, 0.5)
+
+%{
+  qat_result: qat_result,
+  quantized_weights: w_tern_small,
+  sparsity_loss: TernaryNx.Training.sparsity_loss(w_small, 0.5) |> Nx.to_number(),
+  updated_weights:
+    TernaryNx.Training.update_weights(
+      Nx.tensor([1.0, 2.0, 3.0]),
+      Nx.tensor([0.1, 0.1, 0.1]),
+      0.5
+    )
+}
+```
+
+## Sanity checks
+
+Key invariants from the original test suite — every entry must be `true`.
+
+```elixir
+t_small = Nx.tensor([[2.0, 0.0, -3.0], [-0.5, 0.1, 5.0]])
+
+{qat_w, _} = Nx.Random.uniform(Nx.Random.key(42), shape: {4, 8}, type: :f32)
+qat_w = Nx.subtract(Nx.multiply(qat_w, 2.0), 1.0)
+{qat_x, _} = Nx.Random.uniform(Nx.Random.key(7), shape: {3, 8}, type: :f32)
+{qat_result, _qat_tern} = TernaryNx.Training.forward(qat_w, Nx.tensor([1.0, 1.0, 1.0, 1.0]), qat_x, 0.5)
+
+round_trip_tensor =
+  Nx.tensor(
+    [1.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    type: :f32
+  )
+  |> Nx.reshape({2, 10})
+
+[
+  ternarize_only_ternary_values:
+    Nx.Random.uniform(Nx.Random.key(42), shape: {100, 100}, type: :f32)
+    |> then(fn {u, _} -> TernaryNx.Quantizer.ternarize_layer(u, 0.5) end)
+    |> Nx.reshape({:auto})
+    |> Nx.to_flat_list()
+    |> Enum.map(&trunc/1)
+    |> Enum.uniq()
+    |> MapSet.new()
+    |> MapSet.subset?(MapSet.new([-1, 0, 1])),
+  ternarize_delta_zero_is_sign:
+    Nx.all_close(
+      TernaryNx.Quantizer.ternarize_layer(t_small, 0.0),
+      Nx.tensor([[1.0, 1.0, -1.0], [-1.0, 1.0, 1.0]])
+    )
+    |> Nx.to_number() == 1,
+  compute_scales_shape:
+    Nx.shape(TernaryNx.Quantizer.compute_scales(Nx.Random.uniform(Nx.Random.key(42), shape: {16, 32}, type: :f32) |> elem(0), 0.5)) == {16},
+  gemm_shape:
+    Nx.shape(
+      TernaryNx.Mac.ternary_gemm(
+        Nx.tensor([[1.0, 0.0, -1.0], [0.0, 1.0, 1.0]]),
+        Nx.tensor([[0.5, 1.0, -0.5], [1.0, -1.0, 2.0]]),
+        Nx.tensor([1.0, 2.0])
+      )
+    ) == {2, 2},
+  zero_sparsity: TernaryNx.Mac.zero_sparsity(Nx.tensor([1.0, 0.0, 0.0, -1.0, 0.0])) == 3.0 / 5.0,
+  effective_macs: TernaryNx.Mac.effective_macs(Nx.tensor([1.0, 0.0, -1.0, 0.0, 1.0])) == 3,
+  storage_round_trip:
+    Nx.all_close(round_trip_tensor, TernaryNx.Storage.unpack_nx(TernaryNx.Storage.pack_nx(round_trip_tensor), {2, 10}))
+    |> Nx.to_number() == 1,
+  training_forward_shape: Nx.shape(qat_result) == {3, 4},
+  update_weights:
+    Nx.all_close(
+      TernaryNx.Training.update_weights(Nx.tensor([1.0, 2.0, 3.0]), Nx.tensor([0.1, 0.1, 0.1]), 0.5),
+      Nx.tensor([0.95, 1.95, 2.95])
+    )
+    |> Nx.to_number() == 1
+]
+```

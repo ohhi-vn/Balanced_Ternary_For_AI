@@ -1,0 +1,395 @@
+# Ternary Pure — Balanced Ternary in Pure Elixir
+
+## Section
+
+Pure-Elixir demo of the balanced-ternary pipeline — no dependencies:
+
+1. Quantize FP32 weights to ternary `{-1, 0, +1}`
+2. Pack trits (base-3, 10 trits per 16-bit word) and sparse-encode them
+3. Run a forward pass through a ternary layer (per-channel scales + bias)
+4. Show differential (dual-rail) encoding of trits
+
+See [`concept.md`](concept.md) and [`details/18-multiplication-as-selection.md`](details/18-multiplication-as-selection.md) for the theory.
+
+## Quantizer
+
+Converts floating-point weights to ternary `{-1, 0, +1}` with a symmetric threshold `delta`.
+
+```elixir
+defmodule TernaryPure.Quantizer do
+  @moduledoc """
+  Quantizes floating-point weights to ternary values {-1, 0, +1}.
+  """
+
+  @doc """
+  Quantizes a single weight to {-1, 0, +1} using a symmetric threshold.
+  Returns -1 if `weight < -delta`, +1 if `weight > delta`, otherwise 0.
+  """
+  @spec ternarize(float(), float()) :: -1 | 0 | 1
+  def ternarize(weight, delta) when weight <= -delta, do: -1
+  def ternarize(weight, delta) when weight >= delta, do: 1
+  def ternarize(_weight, _delta), do: 0
+
+  @doc """
+  Quantizes a list of lists (2D matrix) of weights.
+  Each row is quantized with the same delta.
+  """
+  @spec ternarize_layer([[float()]], float()) :: [[-1 | 0 | 1]]
+  def ternarize_layer(weights, delta) do
+    Enum.map(weights, fn row ->
+      Enum.map(row, &ternarize(&1, delta))
+    end)
+  end
+end
+```
+
+## MAC (multiply-accumulate)
+
+Ternary multiplication is just select/add/skip — no multiplier needed.
+
+```elixir
+defmodule TernaryPure.MAC do
+  @moduledoc """
+  Multiply-Accumulate operations with ternary weights.
+  """
+
+  @doc """
+  Ternary multiplication: trit_mul(-1, x) = -x, trit_mul(0, x) = 0, trit_mul(1, x) = x.
+  """
+  @spec trit_mul(-1 | 0 | 1, number()) :: number()
+  def trit_mul(-1, x), do: -x
+  def trit_mul(0, _x), do: 0
+  def trit_mul(1, x), do: x
+
+  @doc """
+  Computes the dot product of ternary weights and activations.
+  Skips zero-weight terms for efficiency.
+  """
+  @spec dot_product([-1 | 0 | 1], [number()]) :: number()
+  def dot_product(weights, activations) do
+    weights
+    |> Enum.zip(activations)
+    |> Enum.reduce(0, fn
+      {0, _a}, acc -> acc
+      {-1, a}, acc -> acc - a
+      {1, a}, acc -> acc + a
+    end)
+  end
+
+  @doc """
+  General matrix multiply: ternary weights (rows × cols) dotted with 2D activations.
+  Each row of `weights_2d` is dotted against each column of `activations_2d`.
+  """
+  @spec gemm([[-1 | 0 | 1]], [[number()]]) :: [[number()]]
+  def gemm(weights_2d, activations_2d) do
+    activations_t = Enum.zip_with(activations_2d, & &1)
+
+    Enum.map(weights_2d, fn w_row ->
+      Enum.map(activations_t, fn a_col ->
+        dot_product(w_row, a_col)
+      end)
+    end)
+  end
+end
+```
+
+## Storage
+
+Base-3 packing: `T (-1)` → 0, `0` → 1, `+1` → 2 — 10 trits fit in a 16-bit word.
+
+```elixir
+defmodule TernaryPure.Storage do
+  @moduledoc """
+  Packing and encoding of ternary weights for efficient storage.
+  Uses base-3 encoding: T (-1) → 0, 0 → 1, 1 → 2.
+  """
+
+  @doc """
+  Packs a list of exactly 10 trits into a 16-bit integer.
+  Mapping: T → 0, 0 → 1, 1 → 2 (base-3 digits).
+  """
+  @spec pack10([-1 | 0 | 1]) :: non_neg_integer()
+  def pack10(trits) when length(trits) == 10 do
+    trits
+    |> Enum.map(&trit_to_digit/1)
+    |> Enum.reduce(0, fn d, acc -> acc * 3 + d end)
+  end
+
+  @doc """
+  Unpacks a 16-bit integer back into 10 trits.
+  """
+  @spec unpack10(non_neg_integer()) :: [-1 | 0 | 1]
+  def unpack10(packed) when packed >= 0 do
+    packed
+    |> do_unpack10([])
+    |> pad_trits(10)
+  end
+
+  defp do_unpack10(0, acc), do: acc
+
+  defp do_unpack10(rem, acc) do
+    digit = rem - 3 * div(rem, 3)
+    do_unpack10(div(rem, 3), [digit_to_trit(digit) | acc])
+  end
+
+  defp pad_trits(list, n) when length(list) >= n, do: list
+  defp pad_trits(list, n), do: pad_trits([-1 | list], n)
+
+  defp trit_to_digit(-1), do: 0
+  defp trit_to_digit(0), do: 1
+  defp trit_to_digit(1), do: 2
+
+  defp digit_to_trit(0), do: -1
+  defp digit_to_trit(1), do: 0
+  defp digit_to_trit(2), do: 1
+
+  @doc """
+  Packs a matrix (list of rows) where each row is 10 trits.
+  Returns a list of 16-bit integers.
+  """
+  @spec pack_matrix([[-1 | 0 | 1]]) :: [non_neg_integer()]
+  def pack_matrix(rows) do
+    Enum.map(rows, &pack10/1)
+  end
+
+  @doc """
+  Sparse-encodes a list of trits as [{index, sign}].
+  Only non-zero entries are kept; sign is -1 or +1.
+  """
+  @spec sparse_encode([-1 | 0 | 1]) :: [{non_neg_integer(), -1 | 1}]
+  def sparse_encode(weights) do
+    weights
+    |> Enum.with_index()
+    |> Enum.reduce([], fn
+      {0, _idx}, acc -> acc
+      {w, idx}, acc -> [{idx, w} | acc]
+    end)
+    |> Enum.reverse()
+  end
+end
+```
+
+## Differential (dual-rail) encoding
+
+Maps each trit to a `{wire_a, wire_b}` pair. Negation is a free wire swap.
+
+```elixir
+defmodule TernaryPure.Differential do
+  @moduledoc """
+  Differential (dual-rail) signalling for ternary values.
+  Maps each trit to a {wire_a, wire_b} pair:
+    -1 → {0, 1}
+     0 → {0, 0}
+    +1 → {1, 0}
+  Free negation via wire swap.
+  """
+
+  @doc """
+  Encodes a trit into a {wire_a, wire_b} differential pair.
+  """
+  @spec encode(-1 | 0 | 1) :: {0 | 1, 0 | 1}
+  def encode(-1), do: {0, 1}
+  def encode(0), do: {0, 0}
+  def encode(1), do: {1, 0}
+
+  @doc """
+  Decodes a {wire_a, wire_b} pair back to a trit.
+  Returns {:ok, trit} on success, {:error, :invalid} for invalid pairs.
+  """
+  @spec decode({0 | 1, 0 | 1}) :: {:ok, -1 | 0 | 1} | {:error, :invalid}
+  def decode({0, 0}), do: {:ok, 0}
+  def decode({0, 1}), do: {:ok, -1}
+  def decode({1, 0}), do: {:ok, 1}
+  def decode(_), do: {:error, :invalid}
+
+  @doc """
+  Negates a trit for free by swapping the differential wires.
+  """
+  @spec negate(-1 | 0 | 1) :: -1 | 0 | 1
+  def negate(-1), do: 1
+  def negate(0), do: 0
+  def negate(1), do: -1
+
+  @doc """
+  Processing element operation on a differential pair.
+  Returns 0, -x, or x depending on the pair.
+  """
+  @spec compute_pe(number(), {0 | 1, 0 | 1}) :: number()
+  def compute_pe(_x, {0, 0}), do: 0
+  def compute_pe(x, {0, 1}), do: -x
+  def compute_pe(x, {1, 0}), do: x
+end
+```
+
+## Ternary layer
+
+A layer with ternary weights, per-channel MSE-optimal scales and bias:
+
+```elixir
+defmodule TernaryPure.Layer do
+  @moduledoc """
+  A neural network layer with ternary weights, per-channel scales and bias.
+  """
+
+  defstruct [:weights, :scales, :bias, :delta]
+
+  @type t :: %__MODULE__{
+          weights: [[-1 | 0 | 1]],
+          scales: [float()],
+          bias: [float()],
+          delta: float()
+        }
+
+  @doc """
+  Forward pass through the ternary layer.
+  Each output neuron i:
+    output[i] = (sum_j (W_ternary[i][j] * activation[j])) * scale[i] + bias[i]
+  """
+  @spec forward(%__MODULE__{}, [number()]) :: [number()]
+  def forward(%__MODULE__{weights: w, scales: s, bias: b}, activations) do
+    w
+    |> Enum.zip(Enum.zip(s, b))
+    |> Enum.map(fn {w_row, {scale, bias}} ->
+      dot = TernaryPure.MAC.dot_product(w_row, activations)
+      dot * scale + bias
+    end)
+  end
+
+  @doc """
+  Creates a TernaryLayer from dense (FP32) weights.
+  Computes per-channel scale factor minimizing MSE to the original weights.
+
+  For each channel (row):
+    1. Quantize weights to ternary with the given delta.
+    2. Compute scale = dot(original, ternary) / dot(ternary, ternary)
+  """
+  @spec from_dense([[float()]], float()) :: %__MODULE__{}
+  def from_dense(dense_weights, delta) do
+    {ternary_rows, scales, biases} =
+      dense_weights
+      |> Enum.map(fn row ->
+        t_row = TernaryPure.Quantizer.ternarize_layer([row], delta) |> hd()
+
+        # Per-channel scale via MSE-optimal least-squares
+        t_dot_t = dot_self(t_row)
+
+        scale =
+          if t_dot_t == 0 do
+            0.0
+          else
+            dot(t_row, row) / t_dot_t
+          end
+
+        bias = 0.0
+        {t_row, scale, bias}
+      end)
+      |> unzip3()
+
+    %__MODULE__{
+      weights: ternary_rows,
+      scales: scales,
+      bias: biases,
+      delta: delta
+    }
+  end
+
+  defp dot(a, b), do: Enum.zip(a, b) |> Enum.reduce(0, fn {x, y}, acc -> acc + x * y end)
+  defp dot_self(a), do: Enum.reduce(a, 0, fn x, acc -> acc + x * x end)
+
+  defp unzip3(list),
+    do: Enum.reduce(list, {[], [], []}, fn {a, b, c}, {as, bs, cs} -> {[a | as], [b | bs], [c | cs]} end) |> then(fn {a, b, c} -> {Enum.reverse(a), Enum.reverse(b), Enum.reverse(c)} end)
+end
+```
+
+## Demo — quantize, pack, forward
+
+```elixir
+dense = [
+  [0.42, -0.13, 0.87, -0.55, 0.11, -0.33, 0.72, -0.08, 0.64, -0.29],
+  [-0.91, 0.24, 0.03, 0.68, -0.45, 0.17, -0.82, 0.05, 0.39, -0.01],
+  [0.15, -0.72, -0.34, 0.09, 0.93, -0.12, 0.04, -0.67, 0.31, 0.55]
+]
+
+delta = 0.3
+```
+
+```elixir
+quantized = TernaryPure.Quantizer.ternarize_layer(dense, delta)
+%{delta: delta, dense: dense, quantized: quantized}
+```
+
+```elixir
+packed_rows = TernaryPure.Storage.pack_matrix(quantized)
+unpacked = Enum.map(packed_rows, &TernaryPure.Storage.unpack10/1)
+
+%{
+  packed_16bit_words: packed_rows,
+  unpacked: unpacked,
+  round_trip_ok?: unpacked == quantized,
+  sparse_row_0: TernaryPure.Storage.sparse_encode(Enum.at(quantized, 0))
+}
+```
+
+```elixir
+activations = [1.0, -0.5, 0.3, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+layer = TernaryPure.Layer.from_dense(dense, delta)
+
+%{
+  layer_scales: layer.scales,
+  dot_products_pre_scale: Enum.map(quantized, &TernaryPure.MAC.dot_product(&1, activations)),
+  output_post_scale_bias: TernaryPure.Layer.forward(layer, activations)
+}
+```
+
+## Demo — differential encoding
+
+```elixir
+for t <- [-1, 0, 1] do
+  pair = TernaryPure.Differential.encode(t)
+  {:ok, decoded} = TernaryPure.Differential.decode(pair)
+
+  %{
+    trit: t,
+    pair: pair,
+    decoded: decoded,
+    negated: TernaryPure.Differential.negate(t),
+    pe_result: TernaryPure.Differential.compute_pe(hd(activations), pair)
+  }
+end
+```
+
+## Sanity checks
+
+Key invariants from the original test suite — every entry must be `true`.
+
+```elixir
+[
+  ternarize_thresholds:
+    TernaryPure.Quantizer.ternarize(0.5, 0.3) == 1 and
+      TernaryPure.Quantizer.ternarize(-0.5, 0.3) == -1 and
+      TernaryPure.Quantizer.ternarize(0.2, 0.3) == 0 and
+      TernaryPure.Quantizer.ternarize(0.3, 0.3) == 1 and
+      TernaryPure.Quantizer.ternarize(-0.3, 0.3) == -1,
+  trit_mul:
+    TernaryPure.MAC.trit_mul(-1, 5) == -5 and
+      TernaryPure.MAC.trit_mul(0, 5) == 0 and
+      TernaryPure.MAC.trit_mul(1, 5) == 5 and
+      TernaryPure.MAC.trit_mul(-1, -2.5) == 2.5,
+  dot_product:
+    TernaryPure.MAC.dot_product([1, 0, -1, 1], [2.0, 3.0, 4.0, 1.0]) == -1.0 and
+      TernaryPure.MAC.dot_product([0, 0, 0], [1, 2, 3]) == 0,
+  gemm: TernaryPure.MAC.gemm([[1, 0], [-1, 1]], [[1.0, 2.0], [3.0, 4.0]]) == [[1.0, 2.0], [2.0, 2.0]],
+  pack10_zeros: TernaryPure.Storage.pack10(List.duplicate(0, 10)) == 29_524,
+  pack10_ones: TernaryPure.Storage.pack10(List.duplicate(1, 10)) == 59_048,
+  pack10_negative: TernaryPure.Storage.pack10(List.duplicate(-1, 10)) == 0,
+  pack_round_trip:
+    TernaryPure.Storage.unpack10(TernaryPure.Storage.pack10([1, 0, -1, 1, 0, -1, 0, 0, 1, -1])) ==
+      [1, 0, -1, 1, 0, -1, 0, 0, 1, -1],
+  sparse_encode: TernaryPure.Storage.sparse_encode([1, 0, -1, 0, 1]) == [{0, 1}, {2, -1}, {4, 1}],
+  differential_decode_invalid: TernaryPure.Differential.decode({1, 1}) == {:error, :invalid},
+  differential_pe:
+    TernaryPure.Differential.compute_pe(3.0, {0, 0}) == 0 and
+      TernaryPure.Differential.compute_pe(3.0, {0, 1}) == -3.0 and
+      TernaryPure.Differential.compute_pe(3.0, {1, 0}) == 3.0
+]
+```
