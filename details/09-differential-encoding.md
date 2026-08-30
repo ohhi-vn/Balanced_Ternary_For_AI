@@ -14,6 +14,14 @@ T    | 0      | 1      | Negative (subtract)
 
 Invalid state: `Wire A = 1, Wire B = 1` (not used).
 
+```mermaid
+flowchart LR
+    T["Trit T = -1"] -->|"encode"| W1["A=0, B=1"] --> M1["subtract"]
+    Z["Trit 0"] -->|"encode"| W2["A=0, B=0"] --> M2["skip"]
+    P["Trit 1 = +1"] -->|"encode"| W3["A=1, B=0"] --> M3["add"]
+    I["A=1, B=1 - invalid, not used"]
+```
+
 ---
 
 ### 9.1.1 Physical Layer Details
@@ -128,6 +136,17 @@ A=0,B=0 (0) → A=0,B=0 (0)  → unchanged
 A=1,B=0 (1) → A=0,B=1 (T)  → swap wires
 ```
 
+```mermaid
+stateDiagram-v2
+    sT: T - negative, A=0 B=1
+    s0: 0 - zero, A=0 B=0
+    s1: 1 - positive, A=1 B=0
+    [*] --> s0
+    sT --> s1: swap wires
+    s1 --> sT: swap wires
+    s0 --> s0: unchanged
+```
+
 In a PE, the weight is stored as two bits: one for each differential wire.
 
 Negation is achieved by swapping the two signals going into the adder/subtractor:
@@ -162,22 +181,86 @@ Operation:
     sum accumulates in an internal register (16-bit or 32-bit).
 ```
 
+```mermaid
+flowchart TD
+    S["PE receives wire pair A, B and activation x"] --> C{"A, B?"}
+    C -->|"0, 0"| K["skip - sum unchanged"]
+    C -->|"0, 1"| SUB["sum -= x subtract"]
+    C -->|"1, 0"| ADD["sum += x add"]
+    C -->|"1, 1"| INV["invalid - not used"]
+```
+
+### 9.4.1 Gate-Level Encoder and Decoder
+
+The mapping between the standard 2-bit trit storage code (`00`=T, `01`=0, `10`=1, see §4.6) and the differential pair (A, B) is a fixed boolean function of two inputs — small enough to write as equations and verify by exhaustion:
+
+**Encoder** (2-bit storage code `c1, c0` → wire pair `A, B`):
+
+```
+A = c1 AND NOT c0
+B = NOT c1 AND NOT c0
+```
+
+| Storage code (c1, c0) | Trit | A = c1·¬c0 | B = ¬c1·¬c0 |
+|-----------------------|------|------------|-------------|
+| 0 0                   | T    | 0          | 1           |
+| 0 1                   | 0    | 0          | 0           |
+| 1 0                   | +1   | 1          | 0           |
+| 1 1                   | —    | 0          | 0*          |
+
+\* The storage code `11` is unused; the encoder happens to map it to the `0` wire state. It cannot occur because the storage format never produces it.
+
+**Decoder** (wire pair `A, B` → 2-bit storage code plus a fault flag):
+
+```
+c1  = A AND NOT B        (positive detect)
+c0  = NOR(A, B)          (zero detect — this is the skip signal)
+err = A AND B            (invalid-state detect — never driven, see below)
+```
+
+| (A, B) | c1 | c0 | err | Meaning |
+|--------|----|----|-----|---------|
+| 0 1    | 0  | 0  | 0   | T (subtract) |
+| 0 0    | 0  | 1  | 0   | 0 (skip) |
+| 1 0    | 1  | 0  | 0   | +1 (add) |
+| 1 1    | 0  | 0  | 1   | **fault** |
+
+Verilog for the receiver slice (one trit lane):
+
+```verilog
+module trit_decode (
+    input  wire a,        // differential wire A
+    input  wire b,        // differential wire B
+    output wire w_pos,    // c1: add enable
+    output wire w_zero,   // c0: skip / clock-gate enable
+    output wire w_err     // invalid state detected
+);
+    assign w_pos  = a & ~b;
+    assign w_zero = ~(a | b);
+    assign w_err  = a & b;
+endmodule
+```
+
+Two consequences worth noting:
+
+- **Zero detection is a single NOR gate** (`w_zero`), and it doubles as the clock-gate enable for the PE: both wires low is the *idle* state of the pair, so gating the PE on `w_zero` requires no extra decode logic (§9.10, point 3).
+- **The invalid state is a free fault signal.** Since no encoder ever drives `(1, 1)` (§9.1), observing `w_err = 1` at any receiver means a bus fault — a stuck-at on one wire, a bridge between the pair, or a decoder output shorted high. Each PE can OR its `w_err` into the BIST error network of §9.11, giving continuous online monitoring of the weight bus at zero design cost.
+
+Timing at the gate level: the decoder is 2 gate delays deep (`NOT` → `AND`/`NOR`/`AND`), and the encoder likewise. Neither adds a meaningful delay to the weight-bus path — negation via wire swap (§9.3) adds *zero* gate delays, which is the timing advantage no inverter-based scheme can match.
+
 ---
 
 ## 9.5 Differential Weight Bus
 
 Instead of routing decoded weight values within each PE, the differential pair (A, B) can be routed directly on the weight bus.
 
-```
-Weight SRAM
-    └─► Packed trit word (16 bits = 10 trits)
-        └─► Decoder
-            └─► 10 differential pairs (A₀,B₀)..(A₉,B₉)
-                └─► Distributed to 10 PE columns
-                    Each PE sees:
-                        A_i: add enable
-                        B_i: subtract enable
-                        Both low: skip
+```mermaid
+flowchart TD
+    SRAM["Weight SRAM"] --> W["Packed trit word - 16 bits = 10 trits"]
+    W --> D["Decoder"]
+    D --> P["10 differential pairs: A0 B0 .. A9 B9"]
+    P --> PE["Distributed to 10 PE columns"]
+    PE --> V["Each PE sees: A_i = add enable, B_i = subtract enable, both low = skip"]
 ```
 
 This means each PE receives 2 bits of weight data per cycle instead of decoding internally.
@@ -236,18 +319,20 @@ This means the 2× wire count of differential encoding partially pays for itself
 
 Within the compute array, the differential encoding integrates naturally:
 
-```
-Systolic array column:
-
-    weight bus (differential pair from decoder)
-    │
-    ▼
-  ┌──────┐
-  │ PE   │── receives (A, B)
-  │      │── if A=1: add input ← input
-  │      │── if B=1: add input ← negated input
-  │      │── if A=B=0: skip
-  └──────┘
+```mermaid
+sequenceDiagram
+    participant D as Decoder
+    participant B as Differential Weight Bus
+    participant P as PE
+    D->>B: one differential pair (A_i, B_i) per trit
+    B->>P: 2 bits of weight data per cycle
+    alt A_i = 1 and B_i = 0
+        P->>P: add input x to sum
+    else B_i = 1 and A_i = 0
+        P->>P: subtract x from sum
+    else A_i = 0 and B_i = 0
+        P->>P: skip - sum unchanged
+    end
 ```
 
 No ADC, no DAC, no voltage comparator.
@@ -298,6 +383,15 @@ BIST sequence:
   2. Encode → differential pairs on the bus
   3. Loop back at the PE receiver into a MISR (multi-input signature register)
   4. Compare final signature against golden reference
+```
+
+```mermaid
+flowchart TD
+    A["Apply known trit pattern"] --> B["Encode to differential pairs on the bus"]
+    B --> C["Loop back at the PE receiver into a MISR"]
+    C --> D{"Final signature matches golden reference?"}
+    D -->|yes| E["Pass"]
+    D -->|no| F["Flag decoder fault - remap to spare PE column"]
 ```
 
 The BIST runs at power-on and can be triggered in-field for periodic health checks. A mismatch flags a decoder fault, enabling the system to remap to a spare PE column.

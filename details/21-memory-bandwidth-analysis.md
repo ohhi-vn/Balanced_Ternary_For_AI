@@ -26,6 +26,14 @@ AI     = FLOPs / Bytes
 | INT4   | 4    | 4 FLOP/B   | memory-bound |
 | **Ternary** | **1.585** | **~10 FLOP/B** | approaching compute floor |
 
+```mermaid
+xychart-beta
+    title "Arithmetic intensity at batch 1 by weight format"
+    x-axis ["FP32", "INT8", "INT4", "Ternary"]
+    y-axis "FLOP per byte" 0 --> 12
+    bar [0.5, 2, 4, 10]
+```
+
 A GPU with ~100 TFLOP/s and ~1 TB/s needs AI ≈ 100 FLOP/B to saturate
 compute. Every quantized format fails that test at batch 1 — but the gap
 *defines the win*: time-per-token is set by bytes moved, so cutting bits per
@@ -48,6 +56,14 @@ For a 1B-parameter model at 20 tokens/s:
 | INT8   | 1 GB         | 20 GB/s          |
 | INT4   | 0.5 GB       | 10 GB/s          |
 | Ternary (dense packed) | ~200 MB | **4 GB/s** |
+
+```mermaid
+xychart-beta
+    title "Bandwidth needed for a 1B model at 20 tokens/s"
+    x-axis ["FP32", "INT8", "INT4", "Ternary"]
+    y-axis "GB/s" 0 --> 90
+    bar [80, 20, 10, 4]
+```
 
 4 GB/s fits comfortably in LPDDR-class memory; more importantly, 200 MB can
 live entirely **on-chip**, reducing effective bandwidth demand to zero.
@@ -77,6 +93,15 @@ Why SRAM matters (order-of-magnitude, same node):
 | Energy per access | ~10–100 pJ | ~0.1–1 pJ |
 | Latency | ~100 ns | ~1 ns |
 | Bandwidth | shared bus | per-tile parallel |
+
+The qualitative jump as a memory-hierarchy move — ternary weights stop
+crossing the DRAM bus entirely and live next to the compute array:
+
+```mermaid
+flowchart LR
+    DRAM["DRAM: ~100 ns latency, ~10-100 pJ per access, shared bus"] --> SRAM["On-chip SRAM tiles: 16 MB each, ~1 ns, ~0.1-1 pJ per access"]
+    SRAM --> PE["256x256 PE array: add/sub/skip, weights resident on chip"]
+```
 
 The [ASIC design](12-custom-ternary-accelerator-design.md) allocates 16 MB
 SRAM tiles feeding a 256×256 PE array precisely because a 1B ternary model
@@ -124,6 +149,14 @@ advantage shifts from "less waiting" to "cheaper arithmetic"
 - **Decode (B=1)** → ternary wins big via bandwidth.
 - **Prefill (large B)** → both formats become compute-limited; ternary wins
   via simpler PEs, not bandwidth.
+
+```mermaid
+flowchart TD
+    B["Batch size B raises AI: AI of B approx B x 16/bits"] --> decode["B = 1 decode: memory-bound"]
+    B --> prefill["B = 256 prefill-like: both formats near compute roofline"]
+    decode --> w1["Ternary wins via bandwidth: 20x fewer bytes moved"]
+    prefill --> w2["Ternary wins via cheaper PEs: no multiplier, not bandwidth"]
+```
 
 ## 21.6 Measuring on Real Hardware Today
 

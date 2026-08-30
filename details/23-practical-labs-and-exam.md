@@ -12,6 +12,14 @@ cd tools/ternary_converter && mix deps.get && mix test   # 55 tests must pass
 cd ../../examples/ternary_accel && mix deps.get && mix test
 ```
 
+```mermaid
+flowchart TD
+    A["Elixir >= 1.17 installed - no GPU required"] --> B["tools/ternary_converter: mix deps.get and mix test (55 tests must pass)"]
+    B --> C["examples/ternary_accel: mix deps.get and mix test"]
+    C --> D["Labs 1-5"]
+    D --> E["Capstone exam - 70% passes"]
+```
+
 ## 23.1 Curriculum Map
 
 | Stage | Read | Do | Mastery signal |
@@ -22,6 +30,15 @@ cd ../../examples/ternary_accel && mix deps.get && mix test
 | 4. Systems | [21](21-memory-bandwidth-analysis.md), [06](06-llm-inference-engine.md) | Lab 4 | can size bandwidth for a model+target |
 | 5. Practice | [13](13-model-conversion-guide.md) | Lab 5 | converts real checkpoints end-to-end |
 | 6. Strategy | [22](22-history-and-vision.md), [10](10-comparison.md) | Exam | passes rubric below |
+
+```mermaid
+flowchart LR
+    S1["1 Intuition: concept and ch18, Lab 1"] --> S2["2 Storage and sparsity: ch04 and ch19, Lab 2"]
+    S2 --> S3["3 Theory: ch20, Lab 3"]
+    S3 --> S4["4 Systems: ch21 and ch06, Lab 4"]
+    S4 --> S5["5 Practice: ch13, Lab 5"]
+    S5 --> S6["6 Strategy: ch22 and ch10, Exam"]
+```
 
 ---
 
@@ -108,6 +125,14 @@ mix run -e 'TernaryAccel.run()'
 ### Lab 5 — Real Model Conversion (60 min)
 
 **Goal**: full production path on any HuggingFace checkpoint.
+
+```mermaid
+flowchart TD
+    DL["Download any safetensors checkpoint, e.g. gpt2 at 137M params"] --> CV["convert: --arch gpt2 --mode absmean to gpt2_ternary.tbin"]
+    CV --> IN["info: per-layer classification, compression, sparsity"]
+    IN --> VA["validate: check the converted model"]
+    VA --> DV["Write deliverables: classification table, compression vs sparsity, twn vs absmean rerun"]
+```
 
 ```bash
 # Any safetensors model, e.g. gpt2 (137M):

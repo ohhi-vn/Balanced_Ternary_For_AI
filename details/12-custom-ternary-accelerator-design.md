@@ -30,40 +30,24 @@ A custom ternary accelerator is not a general-purpose processor. It is a **domai
 
 ### 12.2.2 Top-Level Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                    Ternary Transformer Accelerator                │
-│                                                                    │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │ Control Processor (RISC-V RV64GC)                            │  │
-│  │  • Instruction fetch/decode                                   │  │
-│  │  • Layer scheduling                                           │  │
-│  │  • DMA descriptor generation                                  │  │
-│  │  • Interrupt handling                                         │  │
-│  │  • 512 KB instruction SRAM                                   │  │
-│  └──────────────────────────┬──────────────────────────────────┘  │
-│                             │ AXI4 master                         │
-│  ┌──────────────────────────▼──────────────────────────────────┐  │
-│  │ Interconnect (AXI4 crossbar, 64-bit @ 1 GHz)                 │  │
-│  └───┬──────────┬──────────┬──────────┬──────────┬─────────────┘  │
-│      │          │          │          │          │                 │
-│      ▼          ▼          ▼          ▼          ▼                 │
-│  ┌────────┐┌────────┐┌────────┐┌────────┐┌────────┐             │
-│  │ Weight ││Ternary ││ FP16   ││ DMA    ││ PCIe   │             │
-│  │ SRAM   ││ GEMM   ││ Compute││ Engine ││/AXI    │             │
-│  │ (8 MB) ││ Array  ││ Unit   ││ (8 ch) ││ Host   │             │
-│  │        ││(128×128)││       ││        ││ I/F    │             │
-│  └───┬────┘└───┬────┘└───┬────┘└───┬────┘└───┬────┘             │
-│      │         │         │         │         │                   │
-│      ▼         ▼         ▼         ▼         ▼                   │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │ Scratchpad SRAM (4 MB, multi-banked)                       │  │
-│  │  • Bank 0-1: Activation tensors (INT8/FP16)                │  │
-│  │  • Bank 2:   KV cache (INT4/INT8)                          │  │
-│  │  • Bank 3:   Intermediate results, scale factors           │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                                                                    │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    CP["Control Processor<br/>RISC-V RV64GC<br/>instruction fetch/decode, layer scheduling,<br/>DMA descriptors, interrupts, 512 KB instruction SRAM"]
+    CP -->|"AXI4 master"| XBAR["Interconnect<br/>AXI4 crossbar, 64-bit at 1 GHz"]
+    XBAR --> WS["Weight SRAM<br/>8 MB"]
+    XBAR --> GEMM["Ternary GEMM Array<br/>128 x 128"]
+    XBAR --> FP16["FP16 Compute Unit"]
+    XBAR --> DMA["DMA Engine<br/>8 channels"]
+    XBAR --> PCIE["PCIe / AXI Host I/F"]
+    WS --> SP
+    GEMM --> SP
+    FP16 --> SP
+    DMA --> SP
+    subgraph SP["Scratchpad SRAM - 4 MB multi-banked"]
+        B01["Bank 0-1: Activation tensors<br/>INT8/FP16"]
+        B2["Bank 2: KV cache<br/>INT4/INT8"]
+        B3["Bank 3: Intermediate results,<br/>scale factors"]
+    end
 ```
 
 ### 12.2.3 Die Floorplan (7nm)
@@ -106,45 +90,20 @@ A custom ternary accelerator is not a general-purpose processor. It is a **domai
 
 The PE is the fundamental compute unit. It performs one ternary MAC operation per cycle:
 
+```mermaid
+flowchart TD
+    AX["activation_x<br/>8-bit INT"] --> NM["Negation Mux<br/>if T: -x, if 1: +x"]
+    WT["weight_trit<br/>2-bit T/0/1"] --> ZSD["Zero-Skip Detector"]
+    ZSD -->|"zero weight"| CGE["clock_gate_enable"]
+    ZSD --> NM
+    PS["partial_sum<br/>32-bit INT"] --> ADD["32-bit Adder<br/>sum +/- x"]
+    NM --> ADD
+    ADD --> ACC["32-bit Accumulator Register<br/>partial_sum_out"]
+    ACC -->|"to PE below"| OUTA["partial_sum_out"]
+    AX -->|"to PE right"| OUTX["activation_x_out"]
 ```
-┌─────────────────────────────────────────┐
-│ Processing Element (PE)                  │
-│                                          │
-│  Inputs:                                 │
-│    activation_x  ──► [8-bit INT]        │
-│    weight_trit   ──► [2-bit: T/0/1]     │
-│    partial_sum   ──► [32-bit INT]       │
-│                                          │
-│  ┌─────────────┐                         │
-│  │ Zero-Skip   │──► clock_gate_enable   │
-│  │ Detector    │                        │
-│  └──────┬──────┘                         │
-│         │                                │
-│  ┌──────▼──────┐                         │
-│  │ Negation    │                         │
-│  │ Mux         │──► if T: -x, if 1: +x  │
-│  └──────┬──────┘                         │
-│         │                                │
-│  ┌──────▼──────┐                         │
-│  │ 32-bit      │                         │
-│  │ Adder       │──► sum ± x              │
-│  └──────┬──────┘                         │
-│         │                                │
-│  ┌──────▼──────┐                         │
-│  │ 32-bit      │                         │
-│  │ Accumulator │──► partial_sum_out      │
-│  │ Register    │                        │
-│  └─────────────┘                         │
-│                                          │
-│  Outputs:                                │
-│    partial_sum_out ──► to PE below       │
-│    activation_x_out ──► to PE right      │
-│                                          │
-│  Gate count: ~720 gates                  │
-│  Area: ~140 µm² @ 7nm                    │
-│  Critical path: 0.6 ns (1.6 GHz max)    │
-└─────────────────────────────────────────┘
-```
+
+PE specs: ~720 gates, ~140 µm² @ 7nm, critical path 0.6 ns (1.6 GHz max).
 
 **Verilog Implementation:**
 
@@ -435,21 +394,11 @@ SYNC                              ; Wait for all operations
 
 ### 12.7.1 Compilation Pipeline
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    Compilation Pipeline                        │
-│                                                                │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌────────┐ │
-│  │ PyTorch  │    │ Ternary  │    │ Kernel   │    │ Binary │ │
-│  │ Model    │───►│ Quantizer│───►│ Scheduler│───►│ .tbin  │ │
-│  │ (.pth)   │    │          │    │          │    │        │ │
-│  └──────────┘    └──────────┘    └──────────┘    └────────┘ │
-│       │               │               │               │      │
-│       ▼               ▼               ▼               ▼      │
-│  FP32 weights    Ternary weights  Instruction     Packed     │
-│  + architecture  + scale factors  sequence +      binary     │
-│                                   memory plan     for DMA    │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    A["PyTorch Model<br/>.pth"] -->|"FP32 weights<br/>+ architecture"| B["Ternary<br/>Quantizer"]
+    B -->|"ternary weights<br/>+ scale factors"| C["Kernel<br/>Scheduler"]
+    C -->|"instruction sequence<br/>+ memory plan"| D["Binary .tbin<br/>packed for DMA"]
 ```
 
 ### 12.7.2 Ternary Quantizer Pass
@@ -575,29 +524,11 @@ For a GEMM [4096, 11008] × [11008, 4096]:
 
 ### 12.9.1 Verification Hierarchy
 
-```
-Level 1: Unit Tests (Verilator simulation)
-  ├── PE: all 3 trit values × edge cases
-  ├── Decoder: all 243 input values (5-trit)
-  ├── Accumulator: overflow, underflow
-  └── SRAM controller: read/write, bank conflicts
-
-Level 2: Subsystem Tests (Verilator + SystemVerilog)
-  ├── 4×4 PE array: known matrix inputs
-  ├── Full decoder array: random packed inputs
-  ├── DMA engine: transfer correctness
-  └── FP16 unit: accuracy vs. golden model
-
-Level 3: System Tests (FPGA emulation)
-  ├── Full 128×128 array: GEMM correctness
-  ├── End-to-layer: one transformer layer
-  ├── End-to-end: full model inference
-  └── Performance: cycle count validation
-
-Level 4: Silicon Validation (post tape-out)
-  ├── At-speed testing
-  ├── Power/thermal characterization
-  └── Model accuracy validation
+```mermaid
+flowchart TD
+    L1["Level 1: Unit Tests - Verilator simulation<br/>PE trit values, decoder, accumulator, SRAM controller"] --> L2["Level 2: Subsystem Tests - Verilator + SystemVerilog<br/>4x4 PE array, decoder array, DMA engine, FP16 unit"]
+    L2 --> L3["Level 3: System Tests - FPGA emulation<br/>full 128x128 array, transformer layer, end-to-end, cycle count"]
+    L3 --> L4["Level 4: Silicon Validation - post tape-out<br/>at-speed testing, power/thermal, accuracy"]
 ```
 
 ### 12.9.2 Co-simulation with PyTorch

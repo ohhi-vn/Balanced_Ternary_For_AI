@@ -13,6 +13,16 @@ The most famous ternary computer was built at Moscow State University:
 - Followed by **Setun-70** (1970), which pushed the architecture further
   (stack orientation, structured programming support).
 
+```mermaid
+timeline
+    title Ternary ideas and what changed
+    1958 : Setun built at Moscow State University, ~50 machines, 18-trit words
+    1970 : Setun-70 pushes stack orientation and structured programming
+    Binary era : manufacturing economics lock in bits - switch simplicity, noise immunity, ecosystem
+    AI era : error-tolerant, memory-bound, multiplication-heavy, sparse workloads favor ternary
+    Today : BitNet b1.58 demonstrates trained ternary LLMs at billion-parameter scale
+```
+
 Why ternary appealed then — and still does mathematically:
 
 | Property | Binary | Balanced ternary |
@@ -51,6 +61,14 @@ Four properties of neural network workloads invert Setun-era calculus:
 | **Multiplication-heavy** | selection replaces multiplication; PE cost collapses ([18](18-multiplication-as-selection.md)) |
 | **Naturally sparse** | the third state encodes "unimportant" natively — pruning becomes free ([19](19-sparsity-economics.md)) |
 
+```mermaid
+flowchart LR
+    NN["Neural network workload"] --> ET["Error-tolerant: quantization noise absorbable"]
+    NN --> MB["Memory-bandwidth-bound: 20x weight compression attacks the constraint"]
+    NN --> MH["Multiplication-heavy: selection replaces multiplication"]
+    NN --> NS["Naturally sparse: third state encodes unimportant"]
+```
+
 No prior workload offered all four at once. Scientific computing demanded
 exactness; databases were I/O-bound but not multiplier-bound; DSP was
 fixed-function. Neural networks are the first mainstream workload whose
@@ -83,14 +101,14 @@ in [21](21-memory-bandwidth-analysis.md).
 The 48-week execution plan lives in [Research Roadmap](08-research-roadmap.md);
 the strategic shape:
 
-```
-Phase 0: Foundation        → software simulation, literature base      ← tools in this repo
-Phase 1: Small Models      → ResNet/BERT PTQ + QAT validation          ← converter ready
-Phase 2: Transformer       → GPT-2/LLaMA-1B accuracy targets           ← safetensors path ready
-Phase 3: Sparsity          → 75%+ trained sparsity                     ← training recipes needed
-Phase 4: HW Simulation     → cycle-accurate simulator
-Phase 5: FPGA Prototype    → add/sub/skip datapath in fabric           ← guide in [16]
-Phase 6: ASIC Pathfinding  → tape-out specification                    ← guides in [12][17]
+```mermaid
+flowchart LR
+    P0["Phase 0 - Foundation<br/>software simulation, literature base<br/>tools in this repo"] --> P1["Phase 1 - Small Models<br/>ResNet/BERT PTQ + QAT validation<br/>converter ready"]
+    P1 --> P2["Phase 2 - Transformer<br/>GPT-2/LLaMA-1B accuracy targets<br/>safetensors path ready"]
+    P2 --> P3["Phase 3 - Sparsity<br/>75%+ trained sparsity<br/>training recipes needed"]
+    P3 --> P4["Phase 4 - HW Simulation<br/>cycle-accurate simulator"]
+    P4 --> P5["Phase 5 - FPGA Prototype<br/>add/sub/skip datapath in fabric<br/>guide in 16"]
+    P5 --> P6["Phase 6 - ASIC Pathfinding<br/>tape-out specification<br/>guides in 12 and 17"]
 ```
 
 Exit criteria worth stating explicitly:

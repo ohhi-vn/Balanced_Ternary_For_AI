@@ -30,6 +30,13 @@ The zero state means:
 
 This is the single most important advantage of balanced ternary: **it turns pruning into a natural byproduct of quantization**.
 
+```mermaid
+flowchart LR
+    Z["Zero trit"] --> C["No computation: skip the MAC"]
+    Z --> E["No energy: clock-gate the PE"]
+    Z --> S["No storage: omit from sparse format"]
+```
+
 ---
 
 ## Why AI Is a Good Fit
@@ -53,6 +60,16 @@ select:   [+4, −7, skip, +5]  →  4 − 7 + 5 = 2   (zero multiplications)
 
 At realistic sparsity this is 2–4× fewer operations than dense computation — and the multiplier (the most expensive unit on the chip) disappears entirely.
 
+```mermaid
+flowchart LR
+    W["Weight trit w"] -->|"w = +1"| P["Pass: +x"]
+    W -->|"w = 0"| G["Skip: clock-gate, add 0"]
+    W -->|"w = -1"| N["Negate: -x, ~4 transistors"]
+    P --> ACC["Accumulate"]
+    G --> ACC
+    N --> ACC
+```
+
 → Deep dive: [Multiplication Becomes Selection](details/18-multiplication-as-selection.md) — MAC cost model, datapath design, op-count formulas, Elixir simulation.
 
 ---
@@ -68,6 +85,16 @@ A ternary weight carries `log₂(3) ≈ 1.585` bits vs 32 bits for FP32:
 | Ternary| ~1.585      | ~200 MB       |
 
 A 200 MB model fits in **on-chip SRAM** — no DRAM stream needed. Packing schemes:
+
+```mermaid
+xychart-beta
+    title "Bits per weight by format"
+    x-axis ["FP32", "INT8", "INT4", "Ternary"]
+    y-axis "Bits per weight" 0 --> 35
+    bar [32, 8, 4, 1.585]
+```
+
+Packing schemes:
 
 | Scheme | Trits → Bits | Efficiency | Best For |
 |--------|--------------|------------|----------|
@@ -108,6 +135,13 @@ Pure `{-1, 0, +1}` is too lossy; each output channel gets an FP16 scale α (`W_e
 
 Measured cross-check (toolchain, Gaussian weights): absmean → 31.03% zeros, TWN → 42.4% — matching theory.
 
+```mermaid
+flowchart TD
+    Q["Choose quantization mode"] -->|"default, data-free"| T["TWN rule: Delta = 0.7 x mean abs W, ~42% zeros"]
+    Q -->|"BitNet-style models"| A["Absmean: round W / mean abs W, ~31% zeros"]
+    Q -->|"need exact sparsity"| D["Fixed Delta + least-squares alpha, bisection on Delta"]
+```
+
 → Deep dive: [Quantization Theory](details/20-quantization-theory.md) — derivations, SQNR analysis, bisection proof, mode-to-flag mapping.
 
 ---
@@ -116,9 +150,12 @@ Measured cross-check (toolchain, Gaussian weights): absmean → 31.03% zeros, TW
 
 A ternary accelerator pipeline:
 
-```
-Host CPU → Trit Decoder → Ternary Compute Array (add/sub/skip PEs)
-        → Accumulator + Scale Unit → FP16 Unit (softmax/LayerNorm)
+```mermaid
+flowchart LR
+    H["Host CPU"] --> DEC["Trit Decoder"]
+    DEC --> PE["Ternary Compute Array: add/sub/skip PEs"]
+    PE --> ACC["Accumulator + Scale Unit"]
+    ACC --> FP["FP16 Unit: softmax / LayerNorm"]
 ```
 
 Each processing element is just pass/negate/skip — no multiplier, no FP unit. Three states live on two wires per trit (**differential encoding**): negation is a wire swap, zero detection is one NOR gate.
@@ -139,6 +176,14 @@ Ternary: 200 MB × 20 tokens/s = 4 GB/s needed      (20× less; SRAM-resident �
 ```
 
 Energy follows: weight fetch drops from ~60% of inference energy to ~0%, compute to ~8%.
+
+```mermaid
+xychart-beta
+    title "Bandwidth needed for 1B model at 20 tokens/s"
+    x-axis ["FP32", "INT8", "Ternary"]
+    y-axis "GB/s" 0 --> 90
+    bar [80, 20, 4]
+```
 
 → Deep dive: [Memory Bandwidth Analysis](details/21-memory-bandwidth-analysis.md) — roofline arithmetic, KV cache corrections, batch effects, energy breakdown.
 
@@ -164,9 +209,12 @@ For maximum efficiency, a purpose-built ASIC reaches ~50K tokens/s (1B model) at
 
 Two paths:
 
-```
-Quick (PTQ):   FP32 model → calibrate scales → ternarize → validate     minutes, −2–5%
-Quality (QAT): FP32 model → insert ternary layers → fine-tune → export  hours/days, −1–3%
+```mermaid
+flowchart TD
+    M["FP32 model"] -->|"Quick: minutes, -2-5% acc"| PTQ["Calibrate scales → ternarize → validate"]
+    M -->|"Quality: hours/days, -1-3% acc"| QAT["Insert ternary layers → fine-tune → export"]
+    PTQ --> TB[".tbin"]
+    QAT --> TB
 ```
 
 A complete pure-Elixir toolkit ships in [`tools/ternary_converter/`](tools/ternary_converter/):

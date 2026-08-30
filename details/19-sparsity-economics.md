@@ -29,6 +29,14 @@ Source 2 is free; source 3 buys more savings deliberately. The key insight:
 > decision.** Ternary fuses two traditionally separate pipelines —
 > quantization and pruning — into one step with no extra tooling.
 
+```mermaid
+flowchart TD
+    NAT["natural sparsity of trained networks"] --> Z["zero trit"]
+    Q["quantization thresholds: twn, absmean, delta"] -->|"free: 31 to 50% zeros"| Z
+    R["L1 / target-sparsity regularization"] -->|"deliberate: 75%+ at small accuracy cost"| Z
+    Z --> F["quantization and pruning fused into one step"]
+```
+
 ## 19.2 Accuracy vs Sparsity
 
 Empirical pattern for PTQ conversion of transformer LMs (perplexity delta on
@@ -47,6 +55,25 @@ Reading the table: **the first half of the zeros are cheap, the second half
 are expensive.** Production deployments target 40–75%; the shipped tool's
 default modes land in the cheap zone without any retraining
 ([Model Conversion Guide](13-model-conversion-guide.md)).
+
+```mermaid
+xychart-beta
+    title "GEMM compute reduction vs sparsity"
+    x-axis ["0%", "31%", "42%", "50%", "75%", "90%"]
+    y-axis "Speedup (x)" 0 --> 11
+    bar [1, 1.45, 1.7, 2, 4, 10]
+```
+
+```mermaid
+xychart-beta
+    title "Perplexity increase vs sparsity (PTQ on WikiText-style eval)"
+    x-axis ["0%", "31%", "42%", "50%", "75%", "90%"]
+    y-axis "PPL delta" 0 --> 10
+    line [0, 0.5, 0.75, 1.1, 4.0, 8.5]
+```
+
+The 42% point is plotted at the midpoint of its +0.5–1.0 range. Both curves
+bend the same way: savings grow linearly, cost grows superlinearly.
 
 ## 19.3 The Savings Model
 
@@ -102,6 +129,18 @@ Breakeven logic: an index+sign entry costs 16 bits; dense packing costs
 weights are nonzero. Most production models sit below that line, which is
 why **dense packed remains the default** and sparse encoding is an option,
 not the primary path.
+
+```mermaid
+xychart-beta
+    title "Storage cost: dense packed vs index+sign (bits per weight)"
+    x-axis ["0%", "20%", "40%", "60%", "80%", "90%", "100%"]
+    y-axis "Bits per weight" 0 --> 18
+    line [1.6, 1.6, 1.6, 1.6, 1.6, 1.6, 1.6]
+    line [16, 12.8, 9.6, 6.4, 3.2, 1.6, 0]
+```
+
+The two curves cross at ~90% sparsity: index+sign costs `16·(1−s)`
+bits/weight, dense is a flat 1.6.
 
 ## 19.6 Measuring Sparsity with the Toolchain
 

@@ -66,6 +66,17 @@ The most compelling real-world evidence that large-scale ternary inference is vi
 
 At trillion-parameter scale, FP16 requires **2–4 TB** of memory — far beyond any single device. Ternary reduces this to **200–400 GB**, which fits in a small HBM stack or multiple large SRAM banks.
 
+The chart below visualizes the memory gap from the table above:
+
+```mermaid
+xychart-beta
+    title "Model memory in GB - FP16 vs Ternary"
+    x-axis ["GPT-3 175B", "Llama 2 70B", "Mixtral 8x22B", "Llama 3.1 405B", "DeepSeek-V3 671B"]
+    y-axis "Memory GB" 0 --> 1400
+    bar [350, 140, 282, 810, 1340]
+    bar [35, 14, 28, 81, 134]
+```
+
 ---
 
 ## 14.3 Why Ternary Works for Large LLMs
@@ -149,6 +160,15 @@ Ternary's zero state becomes **more beneficial at larger scales**, not less.
 - Ternary 1T model: 200 GB → fits in 1 HBM4 stack + on-chip SRAM
 - **Ternary's advantage shifts from "impossible vs. possible" to "single-chip vs. multi-chip"**
 
+```mermaid
+flowchart TD
+    A["1T parameter model"] --> B{"Weight precision"}
+    B -->|"FP16 2 TB"| C["No single-device fit"]
+    C --> D["16 HBM4 stacks in a multi-chip system"]
+    B -->|"Ternary ~200 GB"| E["1 HBM4 stack plus on-chip SRAM"]
+    E --> F["Single-chip inference"]
+```
+
 ### 14.4.2 Compute: Eliminating Multipliers
 
 For a 1T parameter model running at 20 tokens/s:
@@ -211,6 +231,17 @@ Large LLMs have **outlier channels** with much larger weight magnitudes:
 - Per-channel scaling helps, but extreme outliers can still degrade accuracy
 
 **Mitigation**: Mixed-precision approach — keep outlier channels in INT8/FP16, ternarize the rest. At 1T parameters, even 5% outlier channels in FP16 adds only ~100 GB, still manageable with HBM3e.
+
+```mermaid
+flowchart TD
+    A["Weight channels at 1T scale"] --> B{"Magnitude vs median"}
+    B -->|"normal range"| C["Ternarize with per-channel scale alpha"]
+    B -->|"10-100x median"| D["Keep channel in INT8 or FP16"]
+    C --> E["~200 GB ternary weight storage"]
+    D --> F["5 percent outliers add ~100 GB at 1T"]
+    E --> G["Mixed-precision model fits HBM3e"]
+    F --> G
+```
 
 ### 14.5.3 KV Cache Memory
 
@@ -337,6 +368,15 @@ Active compute per token: 62B × 1.585 bits = ~12.5 GB
 ---
 
 ## 14.9 Roadmap: From Today to 1T Ternary
+
+The four phases below proceed sequentially:
+
+```mermaid
+flowchart LR
+    P1["Phase 1 Validate<br/>10B ternary model - 2025"] --> P2["Phase 2 Scale<br/>100B ternary MoE - 2025 to 2026"]
+    P2 --> P3["Phase 3 Hardware<br/>FPGA prototype - 2026 to 2027"]
+    P3 --> P4["Phase 4 Deploy<br/>ASIC production - 2027 and beyond"]
+```
 
 ### Phase 1: Validate (2025)
 

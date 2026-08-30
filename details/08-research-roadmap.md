@@ -1,5 +1,17 @@
 # 8. Research Roadmap
 
+The roadmap spans seven phases over 48 weeks, moving from software simulation through FPGA prototyping to ASIC pathfinding:
+
+```mermaid
+flowchart LR
+    P0["Phase 0: Foundation (weeks 1-4)"] --> P1["Phase 1: Small Model Validation (weeks 5-8)"]
+    P1 --> P2["Phase 2: Transformer Validation (weeks 9-14)"]
+    P2 --> P3["Phase 3: Sparsity and Efficiency (weeks 15-18)"]
+    P3 --> P4["Phase 4: Hardware Simulation (weeks 19-24)"]
+    P4 --> P5["Phase 5: FPGA Prototype (weeks 25-36)"]
+    P5 --> P6["Phase 6: ASIC Pathfinding (weeks 37-48)"]
+```
+
 ## 8.1 Phase 0: Foundation (Weeks 1-4)
 
 ### Goal
@@ -251,6 +263,15 @@ Week 17-18: Sparse Inference
 
 During Phase 3, consider **hardware-in-the-loop training**: integrate the cycle-accurate simulator (from Phase 4, started early) directly into the training loop so that each forward/backward pass reports actual simulated latency rather than proxy metrics (FLOP count, sparsity %). This gives the optimizer a direct signal to minimize real latency, not just theoretical compute. The trade-off is ~10-100× slower training iterations, so use it for fine-tuning after initial convergence with proxy metrics.
 
+```mermaid
+flowchart TD
+    A["Initial convergence using proxy metrics: FLOP count, sparsity %"] --> B["Fine-tuning with hardware-in-the-loop"]
+    B --> C["Cycle-accurate simulator from Phase 4, started early"]
+    C --> D["Each forward/backward pass reports actual simulated latency"]
+    D --> E["Optimizer minimizes real latency, not theoretical compute"]
+    E --> F["Trade-off: ~10-100x slower iterations"]
+```
+
 ### Deliverables
 
 ```
@@ -403,6 +424,24 @@ If ASIC tape-out cost ($1-3M at 4nm) is prohibitive, a standalone **FPGA product
 | 5: FPGA | FPGA board (Alveo U250) | - | 2-3 HW engineers | 12 weeks |
 | 6: ASIC | EDA tools | - | 3-4 ASIC engineers | 12 weeks |
 
+Derived from the weekly plans in Sections 8.1–8.7 (start date illustrative):
+
+```mermaid
+gantt
+    title Phase Schedule (48 Weeks)
+    dateFormat YYYY-MM-DD
+    axisFormat W%W
+    section Software phases
+    Phase 0 Foundation (weeks 1-4)       :p0, 2026-01-05, 4w
+    Phase 1 Small Model (weeks 5-8)      :p1, after p0, 4w
+    Phase 2 Transformer (weeks 9-14)     :p2, after p1, 6w
+    Phase 3 Sparsity (weeks 15-18)       :p3, after p2, 4w
+    section Hardware phases
+    Phase 4 Simulator (weeks 19-24)      :p4, after p3, 6w
+    Phase 5 FPGA Prototype (weeks 25-36) :p5, after p4, 12w
+    Phase 6 ASIC Pathfinding (weeks 37-48):p6, after p5, 12w
+```
+
 ---
 
 ## 8.9 Risk Factors
@@ -454,6 +493,11 @@ If ASIC tape-out cost ($1-3M at 4nm) is prohibitive, a standalone **FPGA product
 - Silicon  : Tape-out
 ```
 
+```mermaid
+flowchart LR
+    MVP["MVP - Phase 2: 1B model, PPL within +3, sparsity >=50%, software inference"] --> TGT["Target - Phase 5-6: PPL within +2, sparsity >=75%, <=100 us per token, <=5W chip, FPGA or ASIC prototype"] --> STR["Stretch: 7B model, PPL within +1, sparsity >=80%, <=50 us per token, <=10W, tape-out"]
+```
+
 ---
 
 ## 8.11 Publication Strategy
@@ -474,3 +518,10 @@ Target the following venues based on the type of results available:
 2. **Year 2:** Submit accelerator architecture to ISCA or MICRO (Phases 4-5 results).
 3. **Year 2-3:** Submit FPGA demo paper to FPGA symposium (Phase 5 results).
 4. **Year 3:** Submit ASIC PPA to ISSCC/VLSI (Phase 6 results).
+
+```mermaid
+flowchart LR
+    A["Year 1: NeurIPS or ICML - ternary training method, Phases 1-2 results"] --> B["Year 2: ISCA or MICRO - accelerator architecture, Phases 4-5 results"]
+    B --> C["Year 2-3: FPGA Symposium - FPGA prototype demo, Phase 5 results"]
+    C --> D["Year 3: ISSCC or VLSI Symposium - ASIC PPA, Phase 6 results"]
+```

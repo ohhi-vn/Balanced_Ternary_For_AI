@@ -30,6 +30,19 @@ Output pixel = Σ (+1 × positive_inputs) + Σ (-1 × negative_inputs) + skip_ze
 
 This is equivalent to: **count the matching pixels, subtract the mismatching ones, ignore the rest**. This is precisely what edge detectors, Gabor filters, and other classical vision operators do — and CNNs learn similar patterns.
 
+The resulting ternary convolution datapath:
+
+```mermaid
+flowchart LR
+    A["Input image patch"] --> B{"Weight trit"}
+    B -->|"plus 1"| C["Add positive inputs"]
+    B -->|"minus 1"| D["Subtract negative inputs"]
+    B -->|"zero"| E["Skip weight"]
+    C --> F["Accumulate output pixel"]
+    D --> F
+    E --> F
+```
+
 ### 15.2.2 Weight Distributions in Vision Models
 
 Vision model weight distributions are even more concentrated around zero than LLMs:
@@ -253,6 +266,14 @@ Ternary vision models require QAT for best results:
 
 **Ternary's sweet spot**: 5× smaller than FP32 with only 1.6% accuracy drop, while binary networks suffer a catastrophic 14.3% drop.
 
+```mermaid
+xychart-beta
+    title "ResNet-50 Top-1 accuracy by precision"
+    x-axis ["Binary XNOR", "Ternary", "INT4", "INT8", "FP16", "FP32"]
+    y-axis "Top-1 accuracy percent" 0 --> 100
+    bar [61.8, 74.5, 75.2, 75.8, 76.1, 76.1]
+```
+
 ### Ternary vs Binary for Vision
 
 The accuracy gap between ternary and binary is much larger in vision than in LLMs:
@@ -272,30 +293,17 @@ A ternary PE for vision is simpler than for LLMs because:
 - No attention mechanism → no softmax or large matrix multiplications
 - ReLU activation → simple comparison, no exponentiation
 
-```
-┌─────────────────────────────────┐
-│ Ternary Vision PE                │
-│                                  │
-│  weight_trit ──► [Decode]       │
-│                     │            │
-│  activation ──────►┤            │
-│                     ▼            │
-│              ┌──────────┐       │
-│              │  Mux      │       │
-│              │  +1: pass │       │
-│              │  -1: neg  │       │
-│              │   0: zero │       │
-│              └─────┬────┘       │
-│                    ▼             │
-│              ┌──────────┐       │
-│              │ 32-bit   │       │
-│              │ Adder    │       │
-│              └─────┬────┘       │
-│                    ▼             │
-│              Accumulator         │
-│              + ReLU              │
-│              + Scale (α)         │
-└─────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph PE["Ternary Vision PE"]
+        W["weight_trit"] --> DEC["Decode trit"]
+        A["activation INT8"] --> MUX{"Mux"}
+        DEC --> MUX
+        MUX -->|"plus 1 - pass"| ADD["32-bit adder"]
+        MUX -->|"minus 1 - negate"| ADD
+        MUX -->|"zero - skip"| ADD
+        ADD --> ACC["Accumulator + ReLU + scale alpha"]
+    end
 ```
 
 ### 15.7.2 Recommended Spec for Edge Vision
@@ -386,16 +394,12 @@ The vision encoder is the component most amenable to ternary quantization:
 
 ### 15.9.2 Ternary VLM Architecture
 
-```
-Image (224×224×3)
-    ↓
-[Ternary ViT Encoder] ← 20 MB (vs 400 MB FP32)
-    ↓ (visual tokens)
-[FP16 Projection Layer] ← 1 MB
-    ↓
-[Ternary LLM Decoder] ← 200 MB (1B params)
-    ↓
-Text Output
+```mermaid
+flowchart LR
+    IMG["Image 224x224x3"] --> V["Ternary ViT Encoder<br/>20 MB vs 400 MB FP32"]
+    V -->|"visual tokens"| P["FP16 Projection Layer<br/>1 MB"]
+    P --> L["Ternary LLM Decoder<br/>200 MB - 1B params"]
+    L --> T["Text Output"]
 ```
 
 **Total model size**: ~220 MB (vs ~1.4 GB FP16)

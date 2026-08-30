@@ -45,6 +45,16 @@ However, ternary quantization provides approximately **5× compression** over FP
 
 **Rule of thumb**: If a dense model of size N achieves loss L, a ternary model of size ~5N trained with the same methodology will typically achieve loss ≤ L + ε, where ε is the quantization penalty. In practice, this means ternary models are most advantageous when compute-bound rather than memory-bound.
 
+The compute-for-accuracy trade-off is summarized below:
+
+```mermaid
+flowchart LR
+    A["Ternary weights: 1.6 bits vs 32 bits, ~5x compression"] --> B["Same compute budget: train a ~5x larger ternary model"]
+    B --> C{"Does the steeper scaling-law exponent outweigh the constant quantization penalty?"}
+    C -->|yes| D["Ternary model often outperforms the smaller dense model"]
+    C -->|no| E["Dense model of size N remains better"]
+```
+
 ### Elixir: Validation Harness
 
 ```elixir
@@ -146,27 +156,24 @@ end
 
 ### Per-Layer Sensitivity Ranking (LLaMA-style)
 
-```
-Most sensitive:
-    Embedding          (cosine similarity sensitive)
-    LM Head            (final classifier, output logits)
-    Layer 0 Attention  (first layer, high variance)
-    Layer 0-1 MLP      (early layers propagate errors)
-    Middle Attention   (typical)
-    Middle MLP         (typical, largest matrices)
-    Final MLP layers   (least sensitive)
-Least sensitive:
+Ranked from most to least sensitive:
+
+```mermaid
+flowchart LR
+    A["Embedding - cosine similarity sensitive"] --> B["LM Head - output logits"] --> C["Layer 0 Attention - first layer, high variance"] --> D["Layer 0-1 MLP - early layers propagate errors"] --> E["Middle Attention - typical"] --> F["Middle MLP - largest matrices"] --> G["Final MLP layers - least sensitive"]
 ```
 
 ### Layer-by-Layer Accuracy Impact (1B model, WikiText perplexity)
 
-```
-Ternary all layers:                                PPL 24.5
-Keep Embedding FP16, ternary rest:                PPL 23.2
-+ Keep LM Head FP16:                              PPL 22.8
-+ Keep first 2 layers INT8, rest ternary:          PPL 21.9
-+ Keep last layer INT8:                            PPL 21.7
-Baseline FP16:                                     PPL 21.0
+Cumulative effect of protecting precision-critical components (1B model, WikiText):
+
+```mermaid
+flowchart TD
+    S0["Ternary all layers - PPL 24.5"] -->|"keep Embedding FP16"| S1["PPL 23.2"]
+    S1 -->|"also keep LM Head FP16"| S2["PPL 22.8"]
+    S2 -->|"also keep first 2 layers INT8"| S3["PPL 21.9"]
+    S3 -->|"also keep last layer INT8"| S4["PPL 21.7"]
+    S4 -->|"full FP16 baseline"| S5["PPL 21.0"]
 ```
 
 ---
@@ -175,10 +182,12 @@ Baseline FP16:                                     PPL 21.0
 
 As sparsity increases, perplexity rises.
 
-```
-Target sparsity:   0%    25%    50%    75%    90%
-PPL (1B model):   22.0  22.3  23.1  25.0   29.5
-Δ from baseline:  +1.0  +1.3  +2.1  +4.0   +8.5
+```mermaid
+xychart-beta
+    title "PPL vs Target Sparsity (1B model)"
+    x-axis "Target sparsity %" [0, 25, 50, 75, 90]
+    y-axis "Perplexity" 20 --> 32
+    line [22.0, 22.3, 23.1, 25.0, 29.5]
 ```
 
 Sweet spot: **50-75% sparsity** balances compression and accuracy.
@@ -206,15 +215,12 @@ FP16 baseline             | 21.0           | 100%
 
 ## 7.5 Impact of Threshold Δ
 
-```
-Δ   |  Non-zero density  |  PPL (1B model)
-----|--------------------|-----------------
-0.0 |  100%              |  28.5
-0.2 |  85%               |  24.1
-0.5 |  60%               |  22.3
-0.7 |  45%               |  22.8
-1.0 |  25%               |  24.2
-1.5 |  10%               |  28.0
+```mermaid
+xychart-beta
+    title "PPL vs Threshold Delta (1B model)"
+    x-axis "Threshold Delta" [0.0, 0.2, 0.5, 0.7, 1.0, 1.5]
+    y-axis "Perplexity" 20 --> 30
+    line [28.5, 24.1, 22.3, 22.8, 24.2, 28.0]
 ```
 
 Optimal Δ: **0.3–0.7** range for typical weight distributions. 
@@ -250,6 +256,14 @@ Typical self-distillation setup:
 4. Gradually reduce α and T over training to emphasize hard labels in later epochs.
 
 Self-distillation typically recovers 0.3–0.8 PPL points compared to direct QAT, making it a practical default when no external teacher is available.
+
+```mermaid
+flowchart TD
+    A["Train FP32 model to convergence"] --> B["Initialize ternary model from FP32 weights"]
+    B --> C["Fine-tune with QAT using combined loss L = alpha x L_CE + 1-alpha x L_KL"]
+    C --> D["Gradually reduce alpha and T to emphasize hard labels in later epochs"]
+    D --> E["Typical recovery: 0.3-0.8 PPL vs direct QAT"]
+```
 
 ---
 

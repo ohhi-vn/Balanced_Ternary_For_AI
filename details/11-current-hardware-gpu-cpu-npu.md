@@ -23,16 +23,22 @@ NVIDIA GPUs are the most capable platform for ternary inference today, thanks to
 | H200 (Hopper) | 2024 | 3952 | 4.8 TB/s | 141 GB HBM3e |
 | B100/B200 (Blackwell) | 2024 | 9000+ | 8.0 TB/s | FP4 support, 192 GB HBM3e |
 
+```mermaid
+xychart-beta
+    title "NVIDIA HBM Bandwidth by Generation"
+    x-axis ["A100 2020", "H100 2022", "H200 2024", "B200 2024"]
+    y-axis "HBM bandwidth TB/s" 0 --> 9
+    bar [2.0, 3.35, 4.8, 8.0]
+```
+
 **Approach: Ternary Weights + INT8 Activations via cuBLAS/TensorRT**
 
 The most practical path is to store weights in packed ternary format (10 trits per 16-bit word) in GPU memory, then unpack to INT8 at runtime and use INT8 tensor cores for the GEMM:
 
-```
-Packed ternary weights (200 MB for 1B params)
-    ↓  Unpack kernel (custom CUDA)
-INT8 weight matrix (600 MB for 1B params, with scale factors)
-    ↓  INT8 GEMM (cuBLAS / TensorRT)
-Output activations
+```mermaid
+flowchart TD
+    A["Packed ternary weights<br/>200 MB for 1B params"] -->|"Unpack kernel - custom CUDA"| B["INT8 weight matrix<br/>600 MB for 1B params<br/>with scale factors"]
+    B -->|"INT8 GEMM - cuBLAS / TensorRT"| C["Output activations"]
 ```
 
 **Key insight:** Unpacking 10 trits from 16 bits to 10 INT8 values is a memory-bandwidth-bound operation. On an NVIDIA A100 (2 TB/s HBM bandwidth), unpacking 200 MB of packed weights takes ~0.1 ms — negligible compared to the GEMM itself.
@@ -380,31 +386,21 @@ FPGAs are the most flexible platform for ternary acceleration because they allow
 
 ### 11.5.3 FPGA Architecture for Ternary Acceleration
 
-```
-┌─────────────────────────────────────────────────┐
-│ FPGA Ternary Accelerator                         │
-│                                                  │
-│  ┌──────────┐    ┌──────────────────────────┐   │
-│  │ ARM Host │    │ Ternary Compute Pipeline  │   │
-│  │ (Zynq PS)│───►│                          │   │
-│  │          │    │  ┌────────┐  ┌─────────┐ │   │
-│  │ Model    │    │  │Trit    │  │ PE Array │ │   │
-│  │ Loader   │    │  │Decoder │──►│(add/sub/ │ │   │
-│  │ Scheduler│    │  │(10→16) │  │ skip)    │ │   │
-│  └──────────┘    │  └────────┘  └────┬────┘ │   │
-│       │          │                   │      │   │
-│       │          │  ┌────────────────▼────┐ │   │
-│       │          │  │ Accumulator + Scale │ │   │
-│       │          │  │ (DSP slices)        │ │   │
-│       │          │  └────────────────┬────┘ │   │
-│       │          └───────────────────┼──────┘   │
-│       │                              │          │
-│       ▼                              ▼          │
-│  ┌──────────────────────────────────────────┐  │
-│  │ DDR4 / HBM2 Memory Controller            │  │
-│  │ (packed ternary weights + activations)   │  │
-│  └──────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph FPGA["FPGA Ternary Accelerator"]
+        subgraph HOST["ARM Host - Zynq PS"]
+            HL["Model loader + scheduler"]
+        end
+        subgraph PIPE["Ternary Compute Pipeline"]
+            DEC["Trit Decoder<br/>10 to 16"] --> PE["PE Array<br/>add / sub / skip"]
+            PE --> ACC["Accumulator + Scale<br/>DSP slices"]
+        end
+        MEM["DDR4 / HBM2 Memory Controller<br/>packed ternary weights + activations"]
+        HL --> PIPE
+        HL --> MEM
+        PIPE --> MEM
+    end
 ```
 
 ### 11.5.4 Trit Decoder in FPGA Logic
@@ -539,12 +535,10 @@ class PackedTernaryLinear(nn.Module):
 
 For deployment on NPUs and other accelerators that accept ONNX:
 
-```
-PyTorch Model (ternary weights)
-    ↓ torch.onnx.export (with custom QuantizeLinear nodes)
-ONNX Model (with custom "TernaryLinear" op)
-    ↓ ONNX Runtime / vendor SDK
-Target hardware (NPU, DSP, etc.)
+```mermaid
+flowchart TD
+    A["PyTorch Model<br/>ternary weights"] -->|"torch.onnx.export<br/>with custom QuantizeLinear nodes"| B["ONNX Model<br/>with custom TernaryLinear op"]
+    B -->|"ONNX Runtime / vendor SDK"| C["Target hardware<br/>NPU, DSP, etc."]
 ```
 
 **Challenge:** ONNX does not have a standard "TernaryLinear" operator. Workarounds:

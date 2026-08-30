@@ -31,6 +31,13 @@ V ∈ [0, 3¹⁰ − 1] = [0, 59048]
 Stored in a 16-bit unsigned integer.
 ```
 
+```mermaid
+flowchart LR
+    A["10 trits t9..t0"] --> B["Shift each trit by +1: T to 0, 0 to 1, 1 to 2"]
+    B --> C["Base-3 encode: V = sum of t_k x 3^k"]
+    C --> D["16-bit unsigned word"]
+```
+
 ### Elixir: 10-to-16 Packing and Unpacking
 
 ```elixir
@@ -111,6 +118,76 @@ V = t₀ × 3⁰ + t₁ × 3¹ + … + t₉ × 3⁹
 
 This ordering simplifies the hardware decoder because repeated division by 3 extracts digits starting from the least-significant trit. The first trit extracted (`t₀`) maps directly to the first processing element (PE) in the systolic array, eliminating a reversal step.
 
+### 4.2.2 Worked Example: Pack and Unpack
+
+Encoding is easiest to verify on a concrete word. Take the trit list in transmission order `t₉ … t₀`:
+
+```
+Input trits (t9..t0):  [1, T, 0, 1, 0, 0, T, 1, 0, 1]
+
+Step 1 — shift each trit by +1 (T→0, 0→1, 1→2):
+    [2, 1, 0, 2, 1, 1, 0, 2, 1, 2]
+
+Step 2 — Horner base-3 fold (acc = acc × 3 + digit), first element is most significant:
+    2                    = 2
+    2×3 + 1              = 7
+    7×3 + 0              = 21
+    21×3 + 2             = 65
+    65×3 + 1             = 196
+    196×3 + 1            = 589
+    589×3 + 0            = 1767
+    1767×3 + 2           = 5303
+    5303×3 + 1           = 15910
+    15910×3 + 2          = 47732
+
+Encoded word: V = 47732  (fits: 47732 ≤ 59048 = 3¹⁰ − 1)
+```
+
+Decoding runs the inverse — repeated `div 3` / `rem 3` emits digits least-significant first:
+
+```
+Unpack V = 47732:
+
+  rem(47732, 3) = 2 → trit +1   div → 15910
+  rem(15910, 3) = 1 → trit  0   div → 5303
+  rem(5303, 3)  = 2 → trit +1   div → 1767
+  rem(1767, 3)  = 0 → trit  T   div → 589
+  rem(589, 3)   = 1 → trit  0   div → 196
+  rem(196, 3)   = 1 → trit  0   div → 65
+  rem(65, 3)    = 2 → trit +1   div → 21
+  rem(21, 3)    = 0 → trit  T   div → 7
+  rem(7, 3)     = 1 → trit  0   div → 2
+  rem(2, 3)     = 2 → trit +1   div → 0    (stop)
+
+Digits emitted LSB-first: t0..t9 = [1, 0, 1, T, 0, 0, 1, 0, T, 1]
+Reversed → transmission order t9..t0 = [1, T, 0, 1, 0, 0, T, 1, 0, 1]  ✓ round-trip
+```
+
+The little-endian ordering of §4.2.1 is visible here: the first `rem` recovers `t₀ = +1`, which is exactly the trit the first PE consumes.
+
+### 4.2.3 Validity, Padding, and Error Detection
+
+Three properties of the base-3 encoding matter for robust storage:
+
+1. **Range check = corruption check.** A valid encoded word satisfies `V ≤ 3¹⁰ − 1 = 59048`, so the top bits of the 16-bit word are constrained (V < 2¹⁶ means any `V ≥ 59049` is impossible from valid packing). A decoder (or the `validate` command in the converter) can detect bit flips in the upper bits with a single comparison — no checksum required for coarse corruption detection. For stronger guarantees, add an explicit CRC over the packed section (the `.tbin` container handles this at file level).
+
+2. **Padding trits are zeros, not garbage.** Rows are padded to a multiple of 10 with trit `0` (§4.2 Elixir `pad_and_pack`), so padded digit positions hold the value `1` in base-3. The decoder must trim `layer_width mod 10` trits from the final word of each row using the layer metadata — it should never treat padding as weights.
+
+3. **All-0-weights layers are still valid.** A word of ten zero-trits encodes to `V = 3¹⁰ − 1` pattern digits `1` → `V = (1111111111)₃ = 29524`. Note this is *not* `V = 0`: a zero word `V = 0` decodes to ten `T` (−1) trits. Sparse format detection (§4.8) must therefore key off the layer format byte, not off packed-word values.
+
+```mermaid
+flowchart LR
+    subgraph ENC["Encoder"]
+        E1["trits t9..t0"] --> E2["shift +1 per trit"] --> E3["Horner fold acc = acc x 3 + d"] --> E4["V (16-bit word)"]
+    end
+    subgraph DEC["Decoder pipeline (one digit per stage)"]
+        D0["V"] --> D1["stage 0: rem 3 - t0, div 3"] --> D2["stage 1: rem 3 - t1, div 3"] --> D3["... stages 2-8 ..."] --> D4["stage 9: rem 3 - t9"]
+    end
+    E4 -.->|"memory / bus"| D0
+```
+
+Each `rem 3` / `div 3` stage is the same combinational block (~50–100 gates), so a pipelined decoder costs 10 identical stages and produces one trit per cycle per pipeline lane after fill — matching the decode-throughput needs of the systolic array in [05-hardware-architecture.md](05-hardware-architecture.md).
+
 ---
 
 ## 4.3 Packing Scheme: 5 Trits in 8 Bits
@@ -166,6 +243,14 @@ Advantages:
 **Recommended for hardware**: 5→8 (simple decoder, byte-aligned)
 **Recommended for storage**: 10→16 (high density, moderate decoder)
 
+```mermaid
+xychart-beta
+    title "Packing efficiency by scheme (percent)"
+    x-axis ["10to16", "5to8", "3to5", "20to32", "13to21", "Naive2b", "2to4"]
+    y-axis "Efficiency %" 0 --> 100
+    bar [90, 95, 84, 81, 76, 75, 56]
+```
+
 ---
 
 ## 4.6 Decoder Implementation (5→8)
@@ -217,6 +302,17 @@ For each non-zero weight:
 
 Break-even point: ~88% sparsity.
 
+Sparse cost scales linearly as 13 bits per non-zero trit, so index+sign wins once `13 × (1 − sparsity) < 1.6`, i.e. beyond ~88% sparsity:
+
+```mermaid
+xychart-beta
+    title "Bits per trit vs sparsity (percent)"
+    x-axis "Sparsity %" 0 --> 100
+    y-axis "Bits per trit" 0 --> 14
+    line "Dense 10to16" [1.6, 1.6, 1.6, 1.6, 1.6, 1.6]
+    line "Sparse index+sign" [13, 10.4, 7.8, 5.2, 2.6, 0]
+```
+
 ### Block Sparse Format
 
 Divide matrix into blocks (e.g., 32×32). Store each block as:
@@ -256,19 +352,13 @@ RLE excels when zeros cluster in long runs (common in pruned attention layers). 
 
 Best design: support multiple formats and select per-layer.
 
-```
-┌──────────────────────────────────┐
-│ Ternary Weight Storage Manager   │
-├──────────────────────────────────┤
-│ Format detection per layer:      │
-│                                  │
-│ If sparsity > 85%:              │
-│     use sparse (index+sign)      │
-│ Else if 16-byte aligned:         │
-│     use 10-to-16 packing         │
-│ Else:                             │
-│     use 5-to-8 packing           │
-└──────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["Layer weight data"] --> B{"Sparsity > 85%?"}
+    B -->|yes| C["Sparse: index + sign"]
+    B -->|no| D{"16-byte aligned?"}
+    D -->|yes| E["10-to-16 packing"]
+    D -->|no| F["5-to-8 packing"]
 ```
 
 ### Layout in Memory
@@ -288,6 +378,18 @@ Example dense layer (10→16 packing):
 Example sparse layer:
     [Format byte][Scale dim][FP16 scales...
      non-zero count][index array...][sign array...]
+```
+
+```mermaid
+graph LR
+    subgraph SG1["Dense layer (10to16)"]
+        direction LR
+        A1["Format<br/>1 byte"] --> A2["Scale dim<br/>2 bytes"] --> A3["FP16 scales<br/>N x 2 bytes"] --> A4["Packed trit words<br/>10 trits per 16 bits"]
+    end
+    subgraph SG2["Sparse layer (index+sign)"]
+        direction LR
+        B1["Format<br/>1 byte"] --> B2["Scale dim<br/>2 bytes"] --> B3["FP16 scales<br/>N x 2 bytes"] --> B4["Non-zero count"] --> B5["Index array<br/>12 bits each"] --> B6["Sign array<br/>1 bit each"]
+    end
 ```
 
 **Format metadata overhead:** Each layer requires 1 byte for the format identifier + 2 bytes for the scale dimension + the scale data itself (N × 2 bytes for FP16). For a 32-layer model with per-channel scaling on typical dimensions, total metadata is approximately **130 KB** — negligible compared to the weight storage.

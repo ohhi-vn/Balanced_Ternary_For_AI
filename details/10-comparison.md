@@ -16,6 +16,16 @@ Binary neural networks (BNN) constrain weights to `{-1, +1}`.
 
 **Ternary wins because of the zero state.** It allows sparsity and better accuracy.
 
+Bits per weight across formats (ternary at ~1.585 sits between binary and INT4):
+
+```mermaid
+xychart-beta
+    title "Bits per Weight by Format"
+    x-axis ["FP32", "INT8", "INT4", "Ternary", "Binary"]
+    y-axis "Bits per weight" 0 --> 34
+    bar [32, 8, 4, 1.585, 1]
+```
+
 ### 10.1.1 Ternary vs Binary with Ternary Activations
 
 Some recent work goes beyond ternary weights and also quantizes *activations* to ternary values `{-1, 0, +1}`. While this further simplifies the datapath (no multiplier needed at all), it compounds quantization errors: the output of each layer is already noisy, and feeding that noisy signal into the next ternary layer amplifies the degradation. Training such networks requires careful straight-through estimator tuning, layer-wise calibration, and often knowledge distillation from a full-precision teacher. In practice, ternary-weights-only models are a safer bet for most deployments, with ternary activations reserved for very small models or highly noise-tolerant tasks.
@@ -293,6 +303,13 @@ Unstructured pruning removes individual weights.
 
 Ternary quantization and structured pruning are complementary rather than competing techniques. Ternary handles *element-wise* quantization (reducing each weight from 32 bits to ~1.585 bits), while structured pruning removes *entire channels, heads, or layers* to reduce the model's shape. Applying both in sequence yields multiplicative compression: a model that is first pruned from 1B to 600M parameters and then ternarized goes from 4 GB to roughly 120 MB — a ~33× reduction. The key insight is that pruning decisions are best made in full precision (where importance scores are most reliable), after which the remaining dense weights are ternarized for deployment. This two-stage pipeline is the recommended approach for maximizing edge model density.
 
+```mermaid
+flowchart LR
+    A["FP32 model<br/>1B params<br/>4 GB"] --> B["Structured pruning<br/>1B to 600M params"]
+    B --> C["Ternarize remaining<br/>dense weights"]
+    C --> D["Ternary model<br/>~120 MB<br/>~33x smaller"]
+```
+
 ---
 
 ## 10.6 Why Balanced Ternary vs FP8 / Emerging Formats
@@ -450,6 +467,23 @@ Select FP8 if:
     ✓ Need dynamic range for outlier weights
     ✓ Have Hopper-class or newer GPU hardware
     ✓ Accuracy loss must be <0.5%
+```
+
+The same decision criteria as a flowchart:
+
+```mermaid
+flowchart TD
+    S["Select weight format"] --> Q1{"Accuracy loss must be under 0.5 percent?"}
+    Q1 -->|"yes"| Q1a{"Training from scratch at low precision?"}
+    Q1a -->|"yes"| FP8["FP8"]
+    Q1a -->|"no"| INT8["INT8"]
+    Q1 -->|"no"| Q2{"Ultra-low power under 1W and model under 50M params?"}
+    Q2 -->|"yes"| BIN["Binary"]
+    Q2 -->|"no"| Q3{"Edge device with memory bandwidth as bottleneck?"}
+    Q3 -->|"yes"| Q4{"Custom hardware feasible and 1-3 percent loss acceptable?"}
+    Q4 -->|"yes"| TER["Balanced Ternary"]
+    Q4 -->|"no"| INT4["INT4"]
+    Q3 -->|"no"| INT4B["INT4"]
 ```
 
 ---

@@ -26,6 +26,13 @@ Exact minimization is combinatorial over `T`, but the problem separates:
 All shipped modes follow this two-stage structure; they differ only in how
 `T` is chosen.
 
+```mermaid
+flowchart TD
+    W["weight matrix W"] --> T["stage 1: choose T by rule: delta, twn, absmean, or bisect"]
+    T --> A["stage 2: solve alpha per channel: alpha = W·T / T·T"]
+    A --> S["store T packed + alpha FP16 in tbin"]
+```
+
 ## 20.2 Stage One: Optimal Scale Given T
 
 For row `j` (one output channel), minimize `‖W_j − α_j T_j‖²`:
@@ -63,6 +70,15 @@ T[i,j] = +1  if W[i,j] > Δ
 
 Everything hinges on Δ. Three principled ways to pick it follow.
 
+```mermaid
+flowchart TD
+    W["weight element W"] --> Q1{"W > delta?"}
+    Q1 -->|"yes"| P["T = +1"]
+    Q1 -->|"no"| Q2{"W < -delta?"}
+    Q2 -->|"yes"| N["T = -1"]
+    Q2 -->|"no"| Z["T = 0"]
+```
+
 ## 20.4 Rule 2: TWN Threshold — Joint Optimization
 
 *Ternary Weight Networks* (Li & Liu, 2016) minimizes the reconstruction
@@ -89,6 +105,15 @@ Properties:
 The refinement step (per-channel least-squares α from §20.2 on top of the
 global Δ) typically improves on the single shared α from the original paper
 — both are available in the tool.
+
+```mermaid
+flowchart TD
+    A["assume w ~ N 0, sigma^2 i.i.d."] --> B["fix delta; optimal scale is the conditional mean: alpha = E of |w| given |w| > delta"]
+    B --> C["substitute and minimize over delta"]
+    C --> D["stationary condition: delta* approx 0.7 x alpha*"]
+    D --> E["for Gaussians: alpha* approx mean of |W|"]
+    E --> F["delta approx 0.7 x mean of |W|, no calibration data needed"]
+```
 
 ## 20.5 Rule 3: Absmean Rounding (BitNet b1.58)
 
@@ -119,6 +144,13 @@ Implementation: mode `absmean` in `Quantizer.quantize/2`. The GPU demo in
 [`examples/ternary_accel`](../../examples/ternary_accel/) runs the identical
 rule as an on-device kernel (`quantize_absmean/1`).
 
+```mermaid
+flowchart TD
+    G["compute gamma = mean of |W|"] --> N["normalize: W / gamma"]
+    N --> R["roundclip to -1, 0, +1"]
+    R --> B["decision boundaries at plus/minus 0.5 gamma: values within map to 0"]
+```
+
 ## 20.6 Comparing the Rules
 
 For zero-mean Gaussian W with standard deviation σ (`mean|W| ≈ 0.798σ`):
@@ -141,6 +173,14 @@ Measured cross-check from the toolchain (Gaussian synthetic model):
 |------|----------------|--------|
 | `absmean` | 31.03–31.1% | ~31% ✔ |
 | `twn` | 42.4% | ~42% ✔ |
+
+```mermaid
+xychart-beta
+    title "Zero fraction vs effective threshold on Gaussian weights"
+    x-axis ["absmean 0.40 sigma", "twn 0.56 sigma", "interquartile 0.674 sigma"]
+    y-axis "Zero fraction (%)" 0 --> 60
+    bar [31, 42, 50]
+```
 
 ## 20.7 Error Analysis
 
@@ -183,6 +223,18 @@ until |z − target| < 1e−3 or 40 iterations
 
 Use when a deployment contract fixes compute budgets ("exactly 2× GEMM
 reduction") rather than accuracy-first tuning.
+
+```mermaid
+flowchart TD
+    I["lo = 0, hi = 4 sigma"] --> M["mid = midpoint of lo and hi"]
+    M --> Z["ternarize at mid, measure zero fraction z of mid"]
+    Z -->|"z below target"| L["lo = mid: widen the dead zone"]
+    Z -->|"z above target"| H["hi = mid: narrow the dead zone"]
+    L --> C{"z within 1e-3 of target, or 40 iterations?"}
+    H --> C
+    C -->|"no"| M
+    C -->|"yes"| D["return mid as the threshold"]
+```
 
 ## 20.9 Mapping Theory to Tool Flags
 

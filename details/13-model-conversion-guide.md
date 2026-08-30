@@ -9,6 +9,18 @@ This guide provides a complete, step-by-step workflow for converting pretrained 
 3. **Full pipeline** — End-to-end from HuggingFace model to deployable `.tbin` file
 4. **Elixir toolchain** — Complete application for conversion, validation, and inference
 
+The two conversion paths and their trade-offs:
+
+```mermaid
+flowchart TD
+    START["Pretrained model<br/>HuggingFace safetensors"] --> Q{"Conversion path"}
+    Q -->|"quick, no retraining,<br/>2-5 percent accuracy loss"| PTQ["PTQ pipeline"]
+    Q -->|"best accuracy,<br/>QAT recovers 1-3 percent"| QAT["QAT fine-tuning"]
+    PTQ --> EXP["Export .tbin"]
+    QAT --> EXP
+    EXP --> OUT["Deployable .tbin file"]
+```
+
 ### Architecture Support
 
 | Architecture | PTQ | QAT | Mixed Precision | Notes |
@@ -25,6 +37,16 @@ This guide provides a complete, step-by-step workflow for converting pretrained 
 ## 13.2 Quick Path: Post-Training Quantization (PTQ)
 
 PTQ converts a pretrained model to ternary without any retraining. It is fast (minutes) but loses 2-5% accuracy.
+
+The five PTQ steps:
+
+```mermaid
+flowchart TD
+    S1["Step 1: Load pretrained model<br/>safetensors weights"] --> S2["Step 2: Calibrate scale factors<br/>per-channel MSE-optimal alpha"]
+    S2 --> S3["Step 3: Ternary quantization<br/>+ 10 trits per 16-bit word packing"]
+    S3 --> S4["Step 4: Validate<br/>perplexity, output similarity, sparsity"]
+    S4 --> S5["Step 5: Export .tbin<br/>header + layers, optional gzip"]
+```
 
 ### Step 1: Load the Pretrained Model
 
@@ -334,6 +356,17 @@ Per layer:
 ## 13.3 Quality Path: Quantization-Aware Training (QAT)
 
 QAT fine-tunes the model after ternarization, recovering 1-3% accuracy lost during PTQ. This is the recommended path for production deployment.
+
+```mermaid
+flowchart TD
+    A["Pretrained FP32 weights"] --> B["QAT layer init<br/>shadow weights + scales"]
+    B --> C["Forward pass with<br/>ternarized weights"]
+    C --> D["Loss: task + sparsity regularization<br/>optional distillation from FP32 teacher"]
+    D --> E["STE gradient<br/>flows to shadow weights"]
+    E --> F["Update shadow weights<br/>cosine LR with warmup, gradual delta increase"]
+    F -->|"repeat for epochs"| C
+    F -->|"converged"| G["Freeze to ternary layer<br/>for inference"]
+```
 
 ### Step 1: Prepare the Model for QAT
 
@@ -667,7 +700,6 @@ defmodule TernaryConverter.Distiller do
   end
 end
 ```
-```
 
 ---
 
@@ -891,6 +923,13 @@ What `convert` does:
 2. **Classify** each tensor through the architecture policy (`Architectures`): ternarize, keep FP16, or skip buffers/biases. GPT-2 Conv1D weights are transposed to `(out, in)` automatically.
 3. **Quantize** ternary targets in the selected mode (`Quantizer.quantize/2`), pack trits 10-per-word, record per-channel scales.
 4. **Export** a version-2 `.tbin` mixing ternary records and FP16 records, with provenance metadata.
+
+```mermaid
+flowchart LR
+    L["Load<br/>safetensors tensors,<br/>normalize dtypes"] --> C["Classify<br/>architecture policy:<br/>ternarize / keep FP16 / skip"]
+    C --> Q["Quantize<br/>selected mode,<br/>pack 10 trits per word"]
+    Q --> E["Export<br/>version-2 .tbin<br/>ternary + FP16 records"]
+```
 
 ### 13.6.3 Core Modules
 

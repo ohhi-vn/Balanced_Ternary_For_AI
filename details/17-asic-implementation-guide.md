@@ -10,74 +10,16 @@ This document provides a comprehensive guide for implementing balanced ternary n
 
 ### 17.2.1 High-Level Design Flow
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    ASIC Design Flow                          │
-│                                                               │
-│  Phase 1: Specification                                      │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ • Architecture specification (§12.2)                 │    │
-│  │ • Performance/power/area targets                     │    │
-│  │ • Interface definitions (AXI4, PCIe)                 │    │
-│  │ • Technology selection (foundry, node)                │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                   │
-│                           ▼                                   │
-│  Phase 2: RTL Design                                         │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ • Verilog/SystemVerilog implementation               │    │
-│  │ • Module hierarchy (PE, array, memory, control)      │    │
-│  │ • Clock domain crossing (CDC) strategy                │    │
-│  │ • Reset strategy (synchronous deassert)              │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                   │
-│                           ▼                                   │
-│  Phase 3: Functional Verification                            │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ • UVM testbench development                          │    │
-│  │ • Assertion-based verification (ABV)                 │    │
-│  │ • Coverage-driven verification                       │    │
-│  │ • Co-simulation with PyTorch golden model            │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                   │
-│                           ▼                                   │
-│  Phase 4: Synthesis                                          │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ • RTL → Gate-level netlist                           │    │
-│  │ • Technology mapping                                 │    │
-│  │ • Timing constraints (SDC)                           │    │
-│  │ • Power optimization (clock gating, power islands)   │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                   │
-│                           ▼                                   │
-│  Phase 5: Physical Design                                    │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ • Floorplanning                                      │    │
-│  │ • Place and route                                    │    │
-│  │ • Clock tree synthesis (CTS)                         │    │
-│  │ • Signal integrity (SI) analysis                     │    │
-│  │ • Power integrity (IR drop) analysis                 │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                   │
-│                           ▼                                   │
-│  Phase 6: Signoff                                            │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ • Static timing analysis (STA)                       │    │
-│  │ • Design rule check (DRC)                            │    │
-│  │ • Layout vs. schematic (LVS)                         │    │
-│  │ • Electrical rule check (ERC)                        │    │
-│  │ • Formal verification                                │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                   │
-│                           ▼                                   │
-│  Phase 7: Tape-out and Fabrication                           │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ • GDSII generation                                   │    │
-│  │ • Mask data preparation                              │    │
-│  │ • Shuttle run or full wafer lot                      │    │
-│  │ • Post-silicon validation                            │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    P1["Phase 1 - Specification<br/>Architecture spec per section 12.2<br/>Performance power area targets<br/>Interfaces AXI4 PCIe<br/>Technology and node selection"]
+    P2["Phase 2 - RTL Design<br/>Verilog SystemVerilog implementation<br/>Module hierarchy PE array memory control<br/>CDC strategy and reset strategy"]
+    P3["Phase 3 - Functional Verification<br/>UVM testbench development<br/>Assertion-based verification ABV<br/>Coverage-driven verification<br/>Co-simulation with PyTorch golden model"]
+    P4["Phase 4 - Synthesis<br/>RTL to gate-level netlist<br/>Technology mapping<br/>Timing constraints SDC<br/>Power optimization clock gating power islands"]
+    P5["Phase 5 - Physical Design<br/>Floorplanning<br/>Place and route<br/>Clock tree synthesis CTS<br/>Signal integrity and IR drop analysis"]
+    P6["Phase 6 - Signoff<br/>Static timing analysis STA<br/>DRC LVS ERC<br/>Formal verification"]
+    P7["Phase 7 - Tape-out and Fabrication<br/>GDSII generation<br/>Mask data preparation<br/>Shuttle run or full wafer lot<br/>Post-silicon validation"]
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7
 ```
 
 ---
@@ -202,6 +144,36 @@ ternary_accelerator_top
 │  └── Async reset synchronizer (all domains)                   │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+The same structure as a diagram, with the CDC paths between domains:
+
+```mermaid
+flowchart TD
+    subgraph CORE["CLK_CORE 1.0 GHz"]
+        PA["PE array"]
+        FP["FP16 compute unit"]
+        AC["Accumulator array"]
+        WD["Weight decoder array"]
+    end
+    subgraph MEM["CLK_MEM 1.0 GHz"]
+        WS["Weight SRAM"]
+        SS["Scratchpad SRAM"]
+        SC["SRAM controllers"]
+    end
+    subgraph DMA["CLK_DMA 500 MHz"]
+        DE["DMA engine"]
+        AXI["AXI interconnect"]
+    end
+    subgraph HOST["CLK_HOST 250 MHz"]
+        PC["PCIe controller"]
+        HI["Host interface"]
+    end
+    CORE -->|"2-FF synchronizer same frequency"| MEM
+    CORE -->|"2-FF synchronizer 2 to 1 ratio"| DMA
+    DMA -->|"2-FF synchronizer 2 to 1 ratio"| HOST
+```
+
+An asynchronous reset synchronizer covers all four domains.
 
 ### 17.4.3 Reset Strategy
 
@@ -373,6 +345,31 @@ endmodule
 │  └── Decap:     1 mm² (4%)                                       │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+The floorplan regions and their area shares:
+
+```mermaid
+flowchart LR
+    subgraph DIE["Die 7nm - 25 mm2 total"]
+        direction TB
+        subgraph SRAM["SRAM - 19 mm2 - 76 percent"]
+            direction LR
+            WS["Weight SRAM 8 MB<br/>3.0 x 2.5 mm"]
+            SS["Scratchpad SRAM 4 MB<br/>2.0 x 2.0 mm"]
+        end
+        subgraph LOGIC["Logic - 4 mm2 - 16 percent"]
+            direction LR
+            GEMM["Ternary GEMM Array 128x128 PEs<br/>3.0 x 3.0 mm"]
+            FP["FP16 Compute Unit<br/>Softmax engine + 32x32 FP16 array"]
+            RV["RISC-V + Interconnect + PCIe<br/>1.5 x 1.5 mm"]
+            DE["DMA Engine 8-channel<br/>1.0 x 0.5 mm"]
+        end
+        IO["I/O Ring - 1 mm2"]
+        DC["Decoupling capacitors - 1 mm2"]
+    end
+```
+
+Power delivery to all regions comes from the VDD/VSS grid on M7-M9, with 5 percent of the die area reserved for decoupling capacitors.
 
 ### 17.6.2 Power Grid Design
 
@@ -778,6 +775,19 @@ module sram_bist #(
     assign pass = pass_flag;
 
 endmodule
+```
+
+The BIST controller FSM (March C- sequence):
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    IDLE --> WRITE_0 : start asserted
+    WRITE_0 --> READ_0 : all addresses written
+    READ_0 --> WRITE_1 : all addresses read back as 0
+    WRITE_1 --> READ_1 : all addresses written
+    READ_1 --> DONE : all addresses read back as 1
+    DONE --> [*]
 ```
 
 ---

@@ -39,13 +39,20 @@ With ternary weights, multiplication degenerates into **selection**:
 
 The entire MAC shrinks to:
 
+```mermaid
+flowchart LR
+    X["activation x"] --> MUX{"mux"}
+    T["weight trit"] -->|"select"| MUX
+    MUX -->|"+1: pass through"| P["+x"]
+    MUX -->|"-1: negate"| N["-x"]
+    MUX -->|"0: skip lane"| G["clock gate, ~0 pJ"]
+    P --> A["adder"]
+    N --> A
+    A --> ACC["acc"]
 ```
-        ┌─────────┐
-x ─────►│  mux    │──── +x / −x / 0 ────►┌────────┐
-        └─────────┘                      │ adder  │──► acc
-trit ───► select                         └────────┘
-   └────► gate (if 0)
-```
+
+The trit is the select signal: `+1` closes the pass path, `−1` closes the
+negation path, and `0` gates the lane before the adder ever toggles.
 
 Compare with an INT8 multiplier: partial-product generation, Wallace tree,
 carry-propagate adder, pipeline registers. The ternary PE replaces all of it
@@ -71,6 +78,17 @@ Weights:  [1, T, 0, 1]
 ```
 select:   [ +4 | −7 | skip | +5 ]
 add:      4 − 7 + 5 = 2
+```
+
+```mermaid
+flowchart TD
+    L1["lane 1: w = +1, x = 4"] -->|"pass"| S1["select: +4"]
+    L2["lane 2: w = -1, x = 7"] -->|"negate"| S2["select: -7"]
+    L3["lane 3: w = 0, x = 2"] -->|"skip"| Z["zero cost"]
+    L4["lane 4: w = +1, x = 5"] -->|"pass"| S4["select: +5"]
+    S1 --> A["add survivors: 4 - 7 + 5 = 2"]
+    S2 --> A
+    S4 --> A
 ```
 
 3 effective operations instead of 7, and the skipped lane costs nothing.
@@ -104,6 +122,14 @@ speedup     ≈ 1 / (1 − s)        (add-dominated model)
 | 75%               | 4×     | aggressive training target |
 | 90%               | 10×    | requires accuracy recovery techniques |
 
+```mermaid
+xychart-beta
+    title "GEMM speedup vs sparsity (add-dominated model)"
+    x-axis ["31%", "42%", "50%", "75%", "90%"]
+    y-axis "Speedup (x)" 0 --> 11
+    bar [1.45, 1.7, 2, 4, 10]
+```
+
 Caveats (see also [Sparsity Economics](19-sparsity-economics.md)):
 
 - Speedup applies to GEMM only; attention softmax/LayerNorm overhead bounds
@@ -125,6 +151,13 @@ Activations arrive in two's complement. Negation is invert-plus-one:
 
 The `+1` folds into the adder's carry-in — negation costs the inverter only,
 which is why the "4 transistors" figure holds per bit-slice.
+
+```mermaid
+flowchart TD
+    X["x in two's complement"] --> INV["invert all bits: NOT x"]
+    INV --> CI["set carry-in = 1"]
+    CI --> A["shared adder emits -x"]
+```
 
 ### Accumulator Width
 

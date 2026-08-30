@@ -12,6 +12,13 @@ Q(w) = -1   if   w < -Δ
 
 Where `Δ` is a threshold.
 
+```mermaid
+flowchart LR
+    W["FP weight w"] -->|"w > delta"| P["Q w = +1"]
+    W -->|"-delta <= w <= delta"| Z["Q w = 0"]
+    W -->|"w < -delta"| N["Q w = -1"]
+```
+
 ### Elixir: Basic Ternary Quantizer
 
 ```elixir
@@ -160,6 +167,13 @@ Weight Distribution (Gaussian, σ = 1.0)
 
 The 50/25/25 split at `Δ ≈ 0.6745σ` (the interquartile point) minimizes MSE for a unit-variance Gaussian. In practice, values in the range `Δ ∈ [0.5σ, 1.0σ]` work well, with the exact optimum depending on the scale calibration method used.
 
+```mermaid
+pie title Weight assignment at Delta = 0.6745 sigma for a Gaussian
+    "0 region: -Delta <= w <= Delta" : 50
+    "+1 region: w > Delta" : 25
+    "-1 region: w < -Delta" : 25
+```
+
 ---
 
 ## 2.3 Scaling Factor Methods
@@ -234,6 +248,17 @@ Fine-tune `αⱼ` via gradient descent after ternarizing T.
 ---
 
 ## 2.5 Full Quantization Pipeline
+
+```mermaid
+flowchart TD
+    S1["Step 1: Train FP32 baseline"] --> S2["Step 2: Scale calibration - compute per-channel alpha_j"]
+    S2 --> S3["Step 3: Ternarize T = ternarize W / alpha_j, Delta"]
+    S3 --> S4["Step 4: Fine-tune alpha and beta - T frozen"]
+    S4 --> S5{"Step 5: Validate accuracy"}
+    S5 -->|"acceptable"| OK["Export ternary model"]
+    S5 -->|"too low"| FIX["Try per-channel bias, larger groups, or keep layers in INT8"]
+    FIX --> S5
+```
 
 ### Step 1: Train Baseline
 
@@ -394,37 +419,33 @@ Pseudocode:
         return assignment
 ```
 
+```mermaid
+flowchart TD
+    INIT["Start: set every layer to ternary"] --> EV["Evaluate accuracy on calibration set"]
+    EV --> CHK{"Accuracy >= target?"}
+    CHK -->|"yes"| DONE["Return current assignment"]
+    CHK -->|"no"| PROBE["For each ternary layer: temporarily promote to INT8, measure recovery delta_l, revert"]
+    PROBE --> ANY{"Any promotion improved accuracy?"}
+    ANY -->|"no"| STOP["Stop: return best assignment"]
+    ANY -->|"yes"| PROM["Promote layer with highest recovery to INT8 permanently"]
+    PROM --> EV
+```
+
 The key insight is that each evaluation in step 3 only requires re-running the affected layer in INT8 while keeping all others ternary, so the per-iteration cost is small. In practice, this converges in 5–15 promotions for typical LLM architectures, leaving 70–90% of layers in ternary.
 
 ---
 
 ## 2.9 Mixed-Precision Quantization Decision Flow
 
-```
-For each layer:
-    ┌─────────────────────┐
-    │ Is layer an         │
-    │ embedding table?    │──── YES ──► keep FP16
-    └──────────┬──────────┘
-               │ no
-               ▼
-    ┌─────────────────────┐
-    │ Is this the final   │
-    │ classifier head?    │──── YES ──► keep FP16
-    └──────────┬──────────┘
-               │ no
-               ▼
-    ┌─────────────────────┐
-    │ Is it an attention  │
-    │ score or softmax?   │──── YES ──► keep FP16
-    └──────────┬──────────┘
-               │ no
-               ▼
-    ┌─────────────────────┐
-    │ Apply ternary       │
-    │ with per-channel    │
-    │ scale factors       │
-    └─────────────────────┘
+```mermaid
+flowchart TD
+    START["For each layer"] --> Q1{"Is layer an embedding table?"}
+    Q1 -->|"yes"| FP1["Keep FP16"]
+    Q1 -->|"no"| Q2{"Is this the final classifier head?"}
+    Q2 -->|"yes"| FP2["Keep FP16"]
+    Q2 -->|"no"| Q3{"Is it an attention score or softmax?"}
+    Q3 -->|"yes"| FP3["Keep FP16"]
+    Q3 -->|"no"| T["Apply ternary with per-channel scale factors"]
 ```
 
 ---

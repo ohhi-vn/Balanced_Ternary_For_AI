@@ -43,32 +43,16 @@ FPGAs are the **only current platform** that can implement the ternary add/sub/s
 
 ### Selection Criteria
 
-```
-Decision tree:
-
-1. Budget < $100?
-   → Lattice Certus-NX or QuickLogic EOS S3
-   → Suitable for: small models (ResNet-18, MobileNet-V2)
-
-2. Budget < $500?
-   → Xilinx ZCU104
-   → Suitable for: medium models (ResNet-50, YOLOv5-nano)
-   → ARM host for software stack
-
-3. Budget < $5K?
-   → Xilinx Alveo U250 or Intel Agilex 7
-   → Suitable for: large models (ViT-B, YOLOv8)
-   → 128×128+ PE arrays
-
-4. Budget < $10K?
-   → Xilinx Alveo U55C (with HBM2e)
-   → Suitable for: LLM inference (1B+ parameters)
-   → On-chip HBM for weight storage
-
-5. Need maximum flexibility?
-   → Cloud FPGA (AWS F1, Azure Alveo)
-   → Pay-per-hour, no upfront cost
-   → Good for initial exploration
+```mermaid
+flowchart TD
+    Q1{"Budget under 100 USD"} -->|"yes"| B1["Lattice Certus-NX or QuickLogic EOS S3<br/>Small models - ResNet-18 MobileNet-V2"]
+    Q1 -->|"no"| Q2{"Budget under 500 USD"}
+    Q2 -->|"yes"| B2["Xilinx ZCU104<br/>Medium models - ResNet-50 YOLOv5-nano<br/>ARM host for software stack"]
+    Q2 -->|"no"| Q3{"Budget under 5K USD"}
+    Q3 -->|"yes"| B3["Alveo U250 or Intel Agilex 7<br/>Large models - ViT-B YOLOv8<br/>128x128 and larger PE arrays"]
+    Q3 -->|"no"| Q4{"Budget under 10K USD"}
+    Q4 -->|"yes"| B4["Alveo U55C with HBM2e<br/>LLM inference - 1B+ parameters<br/>On-chip HBM for weight storage"]
+    Q4 -->|"no"| B5["Cloud FPGA - AWS F1 Azure Alveo<br/>Pay-per-hour no upfront cost<br/>Good for initial exploration"]
 ```
 
 ---
@@ -230,29 +214,11 @@ endmodule
 
 ### 16.6.1 Memory Hierarchy
 
-```
-┌─────────────────────────────────────────────────┐
-│ External Memory (DDR4 / HBM)                    │
-│ Packed ternary weights (200 MB for 1B model)    │
-└──────────────────┬──────────────────────────────┘
-                   │ AXI DMA
-                   ▼
-┌─────────────────────────────────────────────────┐
-│ On-chip Weight Buffer (BRAM)                     │
-│ 32 KB per PE column (holds 16K trits)            │
-└──────────────────┬──────────────────────────────┘
-                   │ Weight Bus
-                   ▼
-┌─────────────────────────────────────────────────┐
-│ Trit Decoder Array                               │
-│ 10→16 decoders (one per PE column)               │
-└──────────────────┬──────────────────────────────┘
-                   │ Decoded trits (2 bits each)
-                   ▼
-┌─────────────────────────────────────────────────┐
-│ PE Array (64×64)                                 │
-│ Weighted multiply-accumulate                     │
-└─────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    DDR["External Memory DDR4 or HBM<br/>Packed ternary weights - 200 MB for 1B model"] -->|"AXI DMA"| BUF["On-chip Weight Buffer BRAM<br/>32 KB per PE column - holds 16K trits"]
+    BUF -->|"Weight bus"| DEC["Trit Decoder Array<br/>10-to-16 decoders - one per PE column"]
+    DEC -->|"Decoded trits - 2 bits each"| PE["PE Array 64x64<br/>Weighted multiply-accumulate"]
 ```
 
 ### 16.6.2 Weight Loading Verilog
@@ -316,6 +282,18 @@ module weight_loader #(
     end
 
 endmodule
+```
+
+The loader's control FSM:
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    IDLE --> LOAD : start asserted
+    LOAD --> DECODE : 256-bit word buffered
+    DECODE --> OUTPUT : decoder latency 1-2 cycles
+    OUTPUT --> LOAD : more words remaining
+    OUTPUT --> IDLE : all words done
 ```
 
 ---
@@ -495,6 +473,17 @@ def measure_power(overlay, duration_sec=10):
 
 ### 16.9.1 Vivado Flow (Xilinx)
 
+The Vivado commands below follow this toolchain flow:
+
+```mermaid
+flowchart TD
+    S1["Create project - create_project.tcl"] --> S2["Add RTL sources and constraints ports.xdc"]
+    S2 --> S3["synth_design - top ternary_accelerator"]
+    S3 --> S4["place_design and route_design"]
+    S4 --> S5["write_bitstream ternary_accel.bit"]
+    S5 --> S6["write_hw_platform XSA handoff for Zynq PS"]
+```
+
 ```bash
 # Step 1: Create project
 vivado -mode batch -source create_project.tcl
@@ -656,6 +645,23 @@ print(f"Ternary FPGA Accuracy: {accuracy:.2%}")
 ## 16.11 Debugging and Verification
 
 ### 16.11.1 Common Issues and Solutions
+
+The debug loop pairs the symptom table below with ILA captures:
+
+```mermaid
+sequenceDiagram
+    participant PS as ARM PS Host
+    participant PL as Ternary Accelerator PL
+    participant ILA as ILA
+    PS->>PL: Load weights via AXI DMA
+    PS->>PL: Start inference
+    PL->>ILA: Capture state trits activations results
+    PS->>ILA: Read capture via JTAG
+    alt outputs incorrect
+        PS->>PL: Apply fix from debug table and re-run
+    end
+    PS->>PL: Re-run benchmark to confirm
+```
 
 | Symptom | Likely Cause | Debug Step | Fix |
 |---------|-------------|------------|-----|

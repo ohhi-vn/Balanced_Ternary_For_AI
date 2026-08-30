@@ -33,6 +33,22 @@ A standard transformer decoder layer consists of:
    x = layernorm(x)        (FP16)
 ```
 
+Ternary GEMMs run on the ternary array (add/sub/skip); all remaining ops run on the FP16 compute unit:
+
+```mermaid
+flowchart TD
+    X["x (layer input)"] --> QKV["Q, K, V projections: ternary GEMM"]
+    QKV --> SC["scores = Q @ K^T: FP16 GEMM"]
+    SC --> SM["softmax: FP16"]
+    SM --> AV["out = attn @ V: FP16 GEMM"]
+    AV --> WO["out = W_O @ out: ternary GEMM"]
+    WO --> R1["Residual add: FP16"]
+    R1 --> LN1["LayerNorm: FP16"]
+    LN1 --> MLP["MLP: gate and up projections ternary GEMM, activation FP16, down projection ternary GEMM"]
+    MLP --> R2["Residual add: FP16"]
+    R2 --> LN2["LayerNorm: FP16"]
+```
+
 ### Elixir: Decode-Phase Matrix-Vector Kernel
 
 ```elixir
@@ -181,6 +197,19 @@ Benefits for ternary accelerators:
 
 The main requirement is that the scratchpad SRAM must hold the KV caches for all concurrent requests. With INT4 KV cache and 8 MB SRAM, a typical edge configuration supports 4–8 concurrent requests at sequence length 2048.
 
+Per-request lifecycle under continuous batching:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Waiting: request arrives
+    Waiting --> Running: slot frees, request inserted into batch
+    Running --> Running: generate next token
+    Running --> Finished: eos token or max length reached
+    Finished --> [*]
+```
+
+When a request leaves the `Running` state, the next waiting request immediately takes its slot, so the batch never holds idle slots.
+
 ---
 
 ## 6.3 Ternary GEMM Kernel (Decode Phase)
@@ -234,6 +263,14 @@ At step t+1:
 
 **Recommended**: INT4 KV cache on edge, INT8 on server.
 
+```mermaid
+xychart-beta
+    title "KV cache memory in MB (1B model, 2048 sequence)"
+    x-axis ["FP16", "INT8", "INT4", "Ternary"]
+    y-axis "Memory (MB)" 0 --> 35
+    bar [32, 16, 8, 3.2]
+```
+
 When the cache exceeds scratchpad SRAM, it spills to LPDDR. The goal is to keep it on-chip.
 
 **Sliding Window Attention**: For long sequences, only the most recent W tokens are kept in the KV cache, reducing memory from O(seq_len) to O(W). A typical window size is W = 4096. This is especially effective for ternary accelerators with limited SRAM: a 4096-token sliding window with INT4 precision requires only ~4 × 512 × 4096 × 0.5 bytes ≈ 4 MB for the KV cache (at n_kv_heads=4, d_head=128), fitting comfortably in on-chip memory even for batch size > 1.
@@ -259,6 +296,19 @@ Target model:
 ```
 
 This makes speculative decoding on edge devices practical.
+
+In a typical round, the draft model proposes several tokens at ~1 µs each, and the target model verifies the whole draft in a single parallel forward pass; accepted tokens are kept and any rejected suffix is regenerated:
+
+```mermaid
+sequenceDiagram
+    participant D as Draft model (ternary, on-chip)
+    participant T as Target model (ternary, on-chip)
+    D->>D: generate k draft tokens
+    D->>T: send draft tokens
+    T->>T: verify all k tokens in one parallel pass
+    T-->>D: accepted prefix returned as output
+    Note over D,T: rejected draft tokens are discarded and regenerated
+```
 
 ---
 
@@ -533,6 +583,13 @@ Model switch procedure:
   2. DMA new model weights from storage → SRAM
   3. Restore new model's context from LPDDR
   4. Resume inference
+```
+
+```mermaid
+flowchart TD
+    S1["Save current context: KV cache and activations, to LPDDR"] --> S2["DMA new model weights from storage to SRAM"]
+    S2 --> S3["Restore new model context from LPDDR"]
+    S3 --> S4["Resume inference"]
 ```
 
 With 8 MB SRAM and a 200 MB ternary model (e.g., a 1B-parameter model at ~1.585 bits/parameter):

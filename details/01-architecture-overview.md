@@ -18,6 +18,13 @@ If every weight `wᵢⱼ` is constrained to `{-1, 0, +1}`, multiplication simpli
 
 The entire multiply-accumulate (MAC) unit becomes an add/subtract/skip unit. No multiplier is needed.
 
+```mermaid
+flowchart LR
+    W["Ternary weight w_ij"] -->|"w = +1"| A["Add activation +x_i"]
+    W -->|"w = 0"| S["Skip: contributes 0"]
+    W -->|"w = -1"| B["Subtract activation -x_i"]
+```
+
 ### Elixir: Core Ternary Operation
 
 ```elixir
@@ -149,71 +156,27 @@ All three projections can be ternary, giving 3× compression over FP32.
 
 ## 1.4 Data Flow Diagram
 
+```mermaid
+flowchart TD
+    EMB["Input Embedding INT8 / FP16"] --> QP["Ternary Q Projection: add/sub/skip"]
+    EMB --> KP["Ternary K Projection"]
+    EMB --> VP["Ternary V Projection"]
+    KP --> KVC["KV Cache INT4 / Ternary"]
+    VP --> KVC
+    QP --> AS["FP16 Attention Score: Q x K^T"]
+    KVC --> AS
+    AS --> SM["FP16 Softmax"]
+    SM --> AA["FP16 Attention Apply"]
+    AA --> OP["Ternary O Projection"]
+    OP --> RA1["FP16 Residual Add"]
+    RA1 --> LN["FP16 LayerNorm"]
+    LN --> MLP["Ternary Gate + Up Projections: MLP"]
+    MLP --> ACT["FP16 Activation"]
+    ACT --> DP["Ternary Down Projection"]
+    DP --> RA2["FP16 Residual Add"]
 ```
-                 ┌─────────────────────┐
-                 │ Input Embedding     │
-                 │ (INT8 / FP16)       │
-                 └──────────┬──────────┘
-                            ▼
-                 ┌─────────────────────┐
-                 │ Ternary Q Projection │
-                 │  add/sub/skip       │
-                 └──────────┬──────────┘
-                            ▼
-    ┌──────────────────────────────────────┐
-    │ ┌────────┐    ┌────────┐             │
-    │ │Ternary  │    │Ternary  │            │
-    │ │K Proj   │    │V Proj   │            │
-    │ └───┬────┘    └───┬────┘             │
-    │     ▼             ▼                  │
-    │ ┌────────┐    ┌────────┐             │
-    │ │KV Cache│    │KV Cache│             │
-    │ │(INT4/  │    │(INT4/  │             │
-    │ │Ternary)│    │Ternary)│             │
-    │ └───┬────┘    └───┬────┘             │
-    │     ▼             ▼                  │
-    │ ┌────────────────────────┐           │
-    │ │ FP16 Attention Score   │           │
-    │ └──────────┬─────────────┘           │
-    │            ▼                         │
-    │ ┌────────────────────────┐           │
-    │ │ FP16 Softmax           │           │
-    │ └──────────┬─────────────┘           │
-    │            ▼                         │
-    │ ┌────────────────────────┐           │
-    │ │ FP16 Attention Apply   │           │
-    │ └──────────┬─────────────┘           │
-    └────────────┼─────────────────────────┘
-                 ▼
-    ┌─────────────────────┐
-    │ Ternary O Projection│
-    └──────────┬──────────┘
-                 ▼
-    ┌─────────────────────┐
-    │ FP16 Residual Add   │
-    └──────────┬──────────┘
-                 ▼
-    ┌─────────────────────┐
-    │ FP16 LayerNorm      │
-    └──────────┬──────────┘
-                 ▼
-    ┌─────────────────────┐
-    │ Ternary Gate + Up   │
-    │ Projections (MLP)   │
-    └──────────┬──────────┘
-                 ▼
-    ┌─────────────────────┐
-    │ FP16 Activation     │
-    └──────────┬──────────┘
-                 ▼
-    ┌─────────────────────┐
-    │ Ternary Down Proj   │
-    └──────────┬──────────┘
-                 ▼
-    ┌─────────────────────┐
-    │ FP16 Residual Add   │
-    └─────────────────────┘
-```
+
+Ternary boxes perform add/sub/skip compute; FP16/INT8 boxes handle the precision-sensitive math (attention, normalization, residuals). The KV cache stays in INT4/ternary since it is the dominant memory consumer during LLM inference.
 
 ### 1.4.1 Pipeline Stages per Transformer Layer
 
@@ -249,6 +212,24 @@ Timeline (cycles, not to scale):
   ◄─────────────── Layer N ──────────────────────►◄── N+1 ──►
 ```
 
+The same pipeline as a stage graph (overlap opportunities are listed in the stage table above):
+
+```mermaid
+flowchart LR
+    S1["1 Weight fetch"] --> S2["2 Ternary GEMM QKV"]
+    S2 --> S3["3 Activation fetch"]
+    S3 --> S4["4 FP16 Attention Score"]
+    S4 --> S5["5 FP16 Softmax"]
+    S5 --> S6["6 FP16 Attention Apply"]
+    S6 --> S7["7 Ternary GEMM O proj"]
+    S7 --> S8["8 FP16 Residual + LN"]
+    S8 --> S9["9 Ternary GEMM MLP up"]
+    S9 --> S10["10 FP16 Activation"]
+    S10 --> S11["11 Ternary GEMM MLP dn"]
+    S11 --> S12["12 FP16 Residual"]
+    S12 -.->|"next layer"| S1
+```
+
 Key observations:
 - **Ternary GEMM dominates** (~65% of non-overlapped time) but benefits most from the add/skip/subtract simplification — it runs 3-4× faster than an equivalent INT8 GEMM.
 - **FP16 attention** is the second bottleneck; overlapping it with weight fetches for the next layer hides ~20% of its latency.
@@ -273,6 +254,13 @@ Negative:         10-25% -1
 ```
 
 At 75% sparsity, the effective computation is 4× less than a dense ternary model.
+
+```mermaid
+pie title Typical ternary weight distribution (mid-range of reported values)
+    "0 trits - 65%" : 65
+    "+1 trits - 17.5%" : 17.5
+    "-1 trits - 17.5%" : 17.5
+```
 
 ---
 
@@ -377,21 +365,13 @@ Advantage:  ternary reduces HBM bandwidth bottleneck
 
 Deploying a ternary model requires a full compiler pipeline that transforms a standard PyTorch model into packed binary code for the accelerator:
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
-│  PyTorch      │     │   ONNX       │     │  Ternary          │
-│  Model        │────▶│   Export     │────▶│  Quantizer        │
-│  (FP32/BF16)  │     │   (.onnx)    │     │  (calibration +   │
-│               │     │              │     │   ternarization)  │
-└──────────────┘     └──────────────┘     └────────┬─────────┘
-                                                    │
-                                                    ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
-│  Accelerator │     │  Accelerator │     │  Packed Binary    │
-│  Runtime     │◀────│  Driver      │◀────│  (.tbin)          │
-│  (inference) │     │  (load +     │     │  (2-bit trits +   │
-│              │     │   schedule)  │     │   FP16 scales)    │
-└──────────────┘     └──────────────┘     └──────────────────┘
+```mermaid
+flowchart LR
+    PT["PyTorch Model: FP32 / BF16"] --> ONNX["ONNX Export: .onnx"]
+    ONNX --> Q["Ternary Quantizer: calibration + ternarization"]
+    Q --> TB["Packed Binary: .tbin - 2-bit trits + FP16 scales"]
+    TB --> DRV["Accelerator Driver: load + schedule"]
+    DRV --> RT["Accelerator Runtime: inference"]
 ```
 
 ### Stage 1: PyTorch Model

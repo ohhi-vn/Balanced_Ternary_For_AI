@@ -2,53 +2,18 @@
 
 ## 5.1 Top-Level Block Diagram
 
-```
-┌─────────────────────────────────────────────────────┐
-│                   Host CPU (ARM/RISC-V)              │
-│   - Model loading & scheduling                       │
-│   - Control plane                                    │
-│   - System management                                │
-└────────────────────┬────────────────────────────────┘
-                     │ AXI / PCIe
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│              Ternary Inference Accelerator            │
-│                                                       │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐     │
-│  │ Weight     │  │ Ternary    │  │ Activation │     │
-│  │ SRAM       │◄─┤ Decoder    ├─►│ Buffer     │     │
-│  │ (packed    │  │ (5→8 /    │  │ (INT4/INT8)│     │
-│  │  trits)    │  │ 10→16)    │  │            │     │
-│  └────────────┘  └────────────┘  └──────┬─────┘     │
-│         ▲                                │           │
-│         │                                ▼           │
-│         │                        ┌────────────┐     │
-│         │                        │ Ternary    │     │
-│         │                        │ GEMM Array │     │
-│         │                        │ (add/sub/  │     │
-│         │                        │  skip)     │     │
-│         │                        └──────┬─────┘     │
-│         │                               │           │
-│         │                               ▼           │
-│         │                        ┌────────────┐     │
-│         │                        │ Accumulator│     │
-│         │                        │ + Scale    │     │
-│         │                        │ (FP16/BF16)│     │
-│         │                        └──────┬─────┘     │
-│         │                               │           │
-│         ▼                               ▼           │
-│  ┌───────────────────────────────────────────┐      │
-│  │       FP16 Compute Unit                     │      │
-│  │  (Softmax, LayerNorm, Attention Scores,     │      │
-│  │   Residual Add, Element-wise Ops)           │      │
-│  └───────────────────────────────────────────┘      │
-│                                                       │
-│  ┌───────────────────────────────────────────┐      │
-│  │       Scratchpad SRAM (FP16/BF16)          │      │
-│  │  (activations, intermediate tensors)       │      │
-│  └───────────────────────────────────────────┘      │
-│                                                       │
-└─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    CPU["Host CPU: model loading and scheduling, control plane, system management"] -->|"AXI / PCIe"| ACC
+    subgraph ACC["Ternary Inference Accelerator"]
+        WS["Weight SRAM (packed trits)"] --> DEC["Ternary Decoder (5to8 / 10to16)"]
+        DEC --> AB["Activation Buffer (INT4/INT8)"]
+        AB --> GEMM["Ternary GEMM Array (add / sub / skip)"]
+        GEMM --> ACCU["Accumulator + Scale (FP16/BF16)"]
+        ACCU --> FP16["FP16 Compute Unit: softmax, LayerNorm, attention scores, residual add, element-wise ops"]
+        FP16 --- WS
+        FP16 --- SCR["Scratchpad SRAM (FP16/BF16): activations, intermediate tensors"]
+    end
 ```
 
 ---
@@ -206,6 +171,15 @@ Decoder pipeline:
               0 → SKIP signal
 ```
 
+```mermaid
+flowchart LR
+    S1["Stage 1: Read packed word (1 cycle)"] --> S2["Stage 2: Decode to 5 trit values (1-2 cycles)"]
+    S2 --> S3["Stage 3: Encode control signals (1 cycle)"]
+    S3 --> P["Plus 1: ADD signal"]
+    S3 --> M["Minus 1: SUB signal"]
+    S3 --> Z["Zero: SKIP signal"]
+```
+
 ### Decoder Table (for 5→8 scheme)
 
 ```
@@ -252,6 +226,14 @@ Stage 3:  FP16 add bias bⱼ            (1 cycle)
 Stage 4:  Write to output buffer      (1 cycle)
 ```
 
+```mermaid
+flowchart LR
+    IN["Partial sum INT32 from PE column"] --> P1["Stage 1: INT32 to FP16 conversion (1 cycle)"]
+    P1 --> P2["Stage 2: FP16 multiply by alpha_j (2-3 cycles)"]
+    P2 --> P3["Stage 3: FP16 add bias b_j (1 cycle)"]
+    P3 --> P4["Stage 4: Write to output buffer (1 cycle)"]
+```
+
 ### Scale Factor Storage
 
 ```
@@ -295,32 +277,12 @@ Both approaches achieve **< 0.1% accuracy loss** on standard LLM benchmarks whil
 
 ## 5.6 Memory Hierarchy
 
-```
-                     Host DRAM (DDR/LPDDR)
-                            │
-                            │  Model weights (packed ternary)
-                            │  Token embeddings (FP16/INT8)
-                            ▼
-               ┌────────────────────────┐
-               │   On-Chip Weight SRAM   │
-               │   (2-16 MB)             │
-               │   Packed ternary weights │
-               └───────────┬────────────┘
-                           │ Decoder
-                           ▼
-               ┌────────────────────────┐
-               │   Activation /          │
-               │   Scratchpad SRAM       │
-               │   (1-8 MB)              │
-               │   FP16 / INT8           │
-               └────────────────────────┘
-                           │
-                           ▼
-               ┌────────────────────────┐
-               │   Register File         │
-               │   (PE-local)            │
-               │   Small, fast           │
-               └────────────────────────┘
+```mermaid
+flowchart TD
+    DRAM["Host DRAM (DDR/LPDDR): model weights packed ternary, token embeddings FP16/INT8"]
+    DRAM --> WS["On-Chip Weight SRAM (2-16 MB): packed ternary weights"]
+    WS -->|"Decoder"| AS["Activation / Scratchpad SRAM (1-8 MB): FP16 / INT8"]
+    AS --> RF["Register File (PE-local): small, fast"]
 ```
 
 ### Bandwidth Analysis
@@ -454,6 +416,15 @@ For each tile:
 Tile size selection:
     tile_out × tile_in × 1.585 bits ≤ weight SRAM
     tile_in × activation_bits ≤ scratchpad SRAM
+```
+
+```mermaid
+flowchart TD
+    T1["1. Load packed weights to SRAM (DMA)"] --> T2["2. Decode tiles to trit control signals"]
+    T2 --> T3["3. Stream activations through PE array"]
+    T3 --> T4["4. Accumulate partial sums"]
+    T4 --> T5["5. Write results to scratchpad"]
+    T5 -->|"next tile"| T1
 ```
 
 ---
