@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.4">
+    <meta name="project" content="balanced_ternary_engine v0.1.0-dev">
+
+
+    <title>BalancedTernaryEngine.Runtime — balanced_ternary_engine v0.1.0-dev</title>
+
+    <link rel="stylesheet" href="dist/html-elixir-RXHHCTJW.css" />
+
+    <script defer src="dist/sidebar_items-FCB9427C.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-MI33G4N7.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="BalancedTernaryEngine.html" class="sidebar-projectName" translate="no">
+balanced_ternary_engine
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.1.0-dev
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of balanced_ternary_engine</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">BalancedTernaryEngine.<wbr />Runtime</span> 
+      <small class="app-vsn" translate="no">(balanced_ternary_engine v0.1.0-dev)</small>
+
+    </h1>
+
+<a href="BalancedTernaryEngine.Runtime.md" title="Copy Markdown (hold Ctrl/Cmd and click it to open as Markdown)" class="copy-markdown icon-action" rel="help">
+  <i class="ri-markdown-line" aria-hidden="true"></i>
+  <span class="sr-only">Copy Markdown</span>
+</a>
+
+
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>Minimal runtime for executing a converted <code class="inline">.tbin</code> model.</p><p>Supports layer chaining, softmax, layer normalization, multi-head
+attention with a KV cache, and prefill/decode phases.</p>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:t/0" data-no-tooltip="" translate="no">t()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#attention/5" data-no-tooltip="" translate="no">attention(q, k, v, cache \\ %{}, num_heads \\ 1)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Multi-head attention with a KV cache.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#decode/2" data-no-tooltip="" translate="no">decode(rt, input)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Decode: run a single new token, reusing the cache.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#forward/2" data-no-tooltip="" translate="no">forward(runtime, input)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Run the model (layer chaining) on an input tensor.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#layer_norm/2" data-no-tooltip="" translate="no">layer_norm(x, eps \\ 1.0e-5)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Layer normalization (RMSNorm-style) over the last axis.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#load/2" data-no-tooltip="" translate="no">load(path, config \\ %{})</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Load a <code class="inline">.tbin</code> model and an optional config map.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#new/2" data-no-tooltip="" translate="no">new(layers, config \\ %{})</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Create a runtime from already-loaded layers and a config map.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#prefill/2" data-no-tooltip="" translate="no">prefill(rt, input)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Prefill: run a full sequence through the model, populating the cache.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reset_cache/1" data-no-tooltip="" translate="no">reset_cache(rt)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Reset the runtime cache without reloading the model.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#softmax/1" data-no-tooltip="" translate="no">softmax(x)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Softmax over the last axis.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#validate/1" data-no-tooltip="" translate="no">validate(rt)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Validate a runtime instance.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#validate_config/1" data-no-tooltip="" translate="no">validate_config(config)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Validate a runtime configuration map.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:t/0">
+
+  <div class="detail-header">
+    <a href="#t:t/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">t()</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@type</span> t() :: %BalancedTernaryEngine.Runtime{
+  cache: <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">map</a>(),
+  config: <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">map</a>(),
+  layers: [<a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">any</a>()]
+}</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="attention/5">
+
+    <span id="attention/3"></span>
+
+    <span id="attention/4"></span>
+
+  <div class="detail-header">
+    <a href="#attention/5" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">attention(q, k, v, cache \\ %{}, num_heads \\ 1)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> attention(<a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">map</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">integer</a>()) ::
+  {<a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">map</a>()}</pre>
+
+      </div>
+
+<p>Multi-head attention with a KV cache.</p><p><code class="inline">q</code>, <code class="inline">k</code>, <code class="inline">v</code> are <code class="inline">{seq, hidden}</code> tensors. Returns <code class="inline">{out, new_cache}</code>.</p>
+  </section>
+</section>
+<section class="detail" id="decode/2">
+
+  <div class="detail-header">
+    <a href="#decode/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">decode(rt, input)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> decode(<a href="#t:t/0">t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()) :: {<a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="#t:t/0">t</a>()}</pre>
+
+      </div>
+
+<p>Decode: run a single new token, reusing the cache.</p>
+  </section>
+</section>
+<section class="detail" id="forward/2">
+
+  <div class="detail-header">
+    <a href="#forward/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">forward(runtime, input)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> forward(<a href="#t:t/0">t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()) :: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()</pre>
+
+      </div>
+
+<p>Run the model (layer chaining) on an input tensor.</p>
+  </section>
+</section>
+<section class="detail" id="layer_norm/2">
+
+    <span id="layer_norm/1"></span>
+
+  <div class="detail-header">
+    <a href="#layer_norm/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">layer_norm(x, eps \\ 1.0e-5)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> layer_norm(<a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()) :: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()</pre>
+
+      </div>
+
+<p>Layer normalization (RMSNorm-style) over the last axis.</p>
+  </section>
+</section>
+<section class="detail" id="load/2">
+
+    <span id="load/1"></span>
+
+  <div class="detail-header">
+    <a href="#load/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">load(path, config \\ %{})</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> load(<a href="https://elixir.hexdocs.pm/String.html#t:t/0">String.t</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">map</a>()) :: {:ok, <a href="#t:t/0">t</a>()} | {:error, <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">term</a>()}</pre>
+
+      </div>
+
+<p>Load a <code class="inline">.tbin</code> model and an optional config map.</p>
+  </section>
+</section>
+<section class="detail" id="new/2">
+
+    <span id="new/1"></span>
+
+  <div class="detail-header">
+    <a href="#new/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">new(layers, config \\ %{})</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> new([<a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">any</a>()], <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">map</a>()) :: {:ok, <a href="#t:t/0">t</a>()} | {:error, <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">term</a>()}</pre>
+
+      </div>
+
+<p>Create a runtime from already-loaded layers and a config map.</p>
+  </section>
+</section>
+<section class="detail" id="prefill/2">
+
+  <div class="detail-header">
+    <a href="#prefill/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">prefill(rt, input)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> prefill(<a href="#t:t/0">t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()) :: {<a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="#t:t/0">t</a>()}</pre>
+
+      </div>
+
+<p>Prefill: run a full sequence through the model, populating the cache.</p>
+  </section>
+</section>
+<section class="detail" id="reset_cache/1">
+
+  <div class="detail-header">
+    <a href="#reset_cache/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">reset_cache(rt)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> reset_cache(<a href="#t:t/0">t</a>()) :: <a href="#t:t/0">t</a>()</pre>
+
+      </div>
+
+<p>Reset the runtime cache without reloading the model.</p>
+  </section>
+</section>
+<section class="detail" id="softmax/1">
+
+  <div class="detail-header">
+    <a href="#softmax/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">softmax(x)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> softmax(<a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()) :: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()</pre>
+
+      </div>
+
+<p>Softmax over the last axis.</p>
+  </section>
+</section>
+<section class="detail" id="validate/1">
+
+  <div class="detail-header">
+    <a href="#validate/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">validate(rt)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> validate(<a href="#t:t/0">t</a>()) :: :ok | {:error, <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">term</a>()}</pre>
+
+      </div>
+
+<p>Validate a runtime instance.</p>
+  </section>
+</section>
+<section class="detail" id="validate_config/1">
+
+  <div class="detail-header">
+    <a href="#validate_config/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">validate_config(config)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> validate_config(<a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">term</a>()) :: {:ok, <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">map</a>()} | {:error, <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">term</a>()}</pre>
+
+      </div>
+
+<p>Validate a runtime configuration map.</p><p>Returns <code class="inline">{:ok, config}</code> when every supplied value is valid, or
+<code class="inline">{:error, reason}</code> otherwise. Unknown keys are allowed so callers can
+carry application-specific settings.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/balanced_ternary_engine/0.1.0-dev">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/balanced_ternary_engine/0.1.0-dev">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+              <a href="llms.txt" target="_blank">
+                View llms.txt
+              </a>
+
+
+              <a href="balanced_ternary_engine.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.4) for the
+
+            <a href="https://elixir-lang.org" title="Elixir" target="_blank" translate="no">Elixir programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

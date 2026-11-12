@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.4">
+    <meta name="project" content="balanced_ternary_engine v0.1.0-dev">
+
+
+    <title>BalancedTernaryEngine.Layer — balanced_ternary_engine v0.1.0-dev</title>
+
+    <link rel="stylesheet" href="dist/html-elixir-RXHHCTJW.css" />
+
+    <script defer src="dist/sidebar_items-FCB9427C.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-MI33G4N7.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="BalancedTernaryEngine.html" class="sidebar-projectName" translate="no">
+balanced_ternary_engine
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.1.0-dev
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of balanced_ternary_engine</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">BalancedTernaryEngine.<wbr />Layer</span> 
+      <small class="app-vsn" translate="no">(balanced_ternary_engine v0.1.0-dev)</small>
+
+    </h1>
+
+<a href="BalancedTernaryEngine.Layer.md" title="Copy Markdown (hold Ctrl/Cmd and click it to open as Markdown)" class="copy-markdown icon-action" rel="help">
+  <i class="ri-markdown-line" aria-hidden="true"></i>
+  <span class="sr-only">Copy Markdown</span>
+</a>
+
+
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>A neural network layer with ternary weights.</p><p>Supports:</p><ul><li>Forward pass with add/sub/skip (no multiplication)</li><li>Per-channel scale factors and bias</li><li>Conversion from dense (FP32) weights</li><li>Packed weight storage (10 trits per 16-bit word)</li><li>Serialization to/from binary format</li></ul>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:t/0" data-no-tooltip="" translate="no">t()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#forward/2" data-no-tooltip="" translate="no">forward(layer, activations)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Forward pass through the ternary layer.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#forward_nx/2" data-no-tooltip="" translate="no">forward_nx(layer, input_tensor)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Forward pass with Nx tensors (for batched inference).</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#from_binary/1" data-no-tooltip="" translate="no">from_binary(arg)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deserialize layer from binary.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#from_dense/3" data-no-tooltip="" translate="no">from_dense(weight_tensor, name, opts \\ [])</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Create a TernaryLayer from a dense (FP32) weight matrix.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#to_binary/1" data-no-tooltip="" translate="no">to_binary(layer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Serialize layer to binary (.tbin record payload).</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:t/0">
+
+  <div class="detail-header">
+    <a href="#t:t/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">t()</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@type</span> t() :: %BalancedTernaryEngine.Layer{
+  bias: [<a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()],
+  delta: <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>(),
+  name: <a href="https://elixir.hexdocs.pm/String.html#t:t/0">String.t</a>(),
+  original_shape: <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">term</a>(),
+  packing: <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">term</a>(),
+  scales: [<a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()],
+  shape: {<a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">non_neg_integer</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">non_neg_integer</a>()},
+  sparsity: <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>(),
+  weight_packed: <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">binary</a>()
+}</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="forward/2">
+
+  <div class="detail-header">
+    <a href="#forward/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">forward(layer, activations)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> forward(<a href="#t:t/0">t</a>(), [<a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">number</a>()]) :: [<a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">number</a>()]</pre>
+
+      </div>
+
+<p>Forward pass through the ternary layer.</p><p>Computes: output[i] = scale[i] <em> sum_j(W_ternary[i][j] </em> x[j]) + bias[i]</p><p>Uses add/sub/skip — no multiplication for the weight-activation product.</p><h2 id="forward/2-examples" class="section-heading"><a href="#forward/2-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="gp unselectable">iex&gt; </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">Nx</span><span class="o">.</span><span class="n">tensor</span><span class="p" data-group-id="group-1">(</span><span class="p" data-group-id="group-2">[</span><span class="p" data-group-id="group-3">[</span><span class="mf">0.8</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.3</span><span class="p">,</span><span class="w"> </span><span class="mf">0.1</span><span class="p" data-group-id="group-3">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="group-4">[</span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span><span class="w"> </span><span class="mf">0.7</span><span class="p" data-group-id="group-4">]</span><span class="p" data-group-id="group-2">]</span><span class="p" data-group-id="group-1">)</span><span class="w">
+</span><span class="gp unselectable">iex&gt; </span><span class="n">layer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine.Layer</span><span class="o">.</span><span class="n">from_dense</span><span class="p" data-group-id="group-5">(</span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;test&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">delta</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p" data-group-id="group-5">)</span><span class="w">
+</span><span class="gp unselectable">iex&gt; </span><span class="nc">BalancedTernaryEngine.Layer</span><span class="o">.</span><span class="n">forward</span><span class="p" data-group-id="group-6">(</span><span class="n">layer</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="group-7">[</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p" data-group-id="group-7">]</span><span class="p" data-group-id="group-6">)</span><span class="w">
+</span><span class="p" data-group-id="group-8">[</span><span class="mf">0.5666666626930237</span><span class="p">,</span><span class="w"> </span><span class="mf">1.619999885559082</span><span class="p" data-group-id="group-8">]</span></code></pre>
+  </section>
+</section>
+<section class="detail" id="forward_nx/2">
+
+  <div class="detail-header">
+    <a href="#forward_nx/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">forward_nx(layer, input_tensor)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> forward_nx(<a href="#t:t/0">t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()) :: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()</pre>
+
+      </div>
+
+<p>Forward pass with Nx tensors (for batched inference).</p>
+  </section>
+</section>
+<section class="detail" id="from_binary/1">
+
+  <div class="detail-header">
+    <a href="#from_binary/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">from_binary(arg)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> from_binary(<a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">binary</a>()) :: <a href="#t:t/0">t</a>()</pre>
+
+      </div>
+
+<p>Deserialize layer from binary.</p><p>Mirrors <a href="#to_binary/1"><code class="inline">to_binary/1</code></a> field-for-field. The pattern match is total:
+a truncated or malformed payload fails to match and raises, which the
+Exporter wraps into an error tuple.</p>
+  </section>
+</section>
+<section class="detail" id="from_dense/3">
+
+    <span id="from_dense/2"></span>
+
+  <div class="detail-header">
+    <a href="#from_dense/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">from_dense(weight_tensor, name, opts \\ [])</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> from_dense(<a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://elixir.hexdocs.pm/String.html#t:t/0">String.t</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">keyword</a>()) :: <a href="#t:t/0">t</a>()</pre>
+
+      </div>
+
+<p>Create a TernaryLayer from a dense (FP32) weight matrix.</p><p>Quantization is delegated to <a href="BalancedTernaryEngine.Quantizer.html#quantize/2"><code class="inline">BalancedTernaryEngine.Quantizer.quantize/2</code></a>;
+pass <code class="inline">mode:</code> (<code class="inline">:delta</code>, <code class="inline">:twn</code>, <code class="inline">:absmean</code>) and <code class="inline">delta:</code> options
+through. Automatically packs weights and records per-channel scales.</p><h2 id="from_dense/3-examples" class="section-heading"><a href="#from_dense/3-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="gp unselectable">iex&gt; </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">Nx</span><span class="o">.</span><span class="n">tensor</span><span class="p" data-group-id="group-1">(</span><span class="p" data-group-id="group-2">[</span><span class="p" data-group-id="group-3">[</span><span class="mf">0.8</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.3</span><span class="p">,</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.9</span><span class="p" data-group-id="group-3">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="group-4">[</span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span><span class="w"> </span><span class="mf">0.7</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.4</span><span class="p" data-group-id="group-4">]</span><span class="p" data-group-id="group-2">]</span><span class="p" data-group-id="group-1">)</span><span class="w">
+</span><span class="gp unselectable">iex&gt; </span><span class="n">layer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine.Layer</span><span class="o">.</span><span class="n">from_dense</span><span class="p" data-group-id="group-5">(</span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;fc1&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">delta</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p" data-group-id="group-5">)</span><span class="w">
+</span><span class="gp unselectable">iex&gt; </span><span class="n">layer</span><span class="o">.</span><span class="n">shape</span><span class="w">
+</span><span class="p" data-group-id="group-6">{</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p" data-group-id="group-6">}</span><span class="w">
+</span><span class="gp unselectable">iex&gt; </span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="w">
+</span><span class="s">&quot;fc1&quot;</span></code></pre>
+  </section>
+</section>
+<section class="detail" id="to_binary/1">
+
+  <div class="detail-header">
+    <a href="#to_binary/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">to_binary(layer)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> to_binary(<a href="#t:t/0">t</a>()) :: <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">binary</a>()</pre>
+
+      </div>
+
+<p>Serialize layer to binary (.tbin record payload).</p><p>Layout (all integers big-endian):</p><pre><code class="makeup elixir" translate="no"><span class="n">name_len</span><span class="o">::</span><span class="mi">16</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">out</span><span class="o">::</span><span class="mi">32</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="ow">in</span><span class="o">::</span><span class="mi">32</span><span class="w">
+</span><span class="n">delta</span><span class="o">::</span><span class="n">float</span><span class="o">-</span><span class="mi">32</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">sparsity</span><span class="o">::</span><span class="n">float</span><span class="o">-</span><span class="mi">32</span><span class="w">
+</span><span class="n">num_scales</span><span class="o">::</span><span class="mi">32</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">scales</span><span class="w"> </span><span class="p" data-group-id="group-1">(</span><span class="n">num_scales</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="n">float</span><span class="o">-</span><span class="mi">16</span><span class="p" data-group-id="group-1">)</span><span class="w">
+</span><span class="n">num_biases</span><span class="o">::</span><span class="mi">32</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">biases</span><span class="w">  </span><span class="p" data-group-id="group-2">(</span><span class="n">num_biases</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="n">float</span><span class="o">-</span><span class="mi">16</span><span class="p" data-group-id="group-2">)</span><span class="w">
+</span><span class="n">packed_size</span><span class="o">::</span><span class="mi">32</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">packed</span><span class="w"> </span><span class="n">trits</span><span class="w"> </span><span class="p" data-group-id="group-3">(</span><span class="n">see</span><span class="w"> </span><span class="nc">Packer</span><span class="p" data-group-id="group-3">)</span></code></pre><p>Scales/biases use half precision: they are calibration constants, and
+f16 halves their footprint at negligible accuracy cost.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/balanced_ternary_engine/0.1.0-dev">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/balanced_ternary_engine/0.1.0-dev">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+              <a href="llms.txt" target="_blank">
+                View llms.txt
+              </a>
+
+
+              <a href="balanced_ternary_engine.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.4) for the
+
+            <a href="https://elixir-lang.org" title="Elixir" target="_blank" translate="no">Elixir programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

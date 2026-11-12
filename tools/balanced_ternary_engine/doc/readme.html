@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.4">
+    <meta name="project" content="balanced_ternary_engine v0.1.0-dev">
+
+
+    <title>BalancedTernaryEngine — balanced_ternary_engine v0.1.0-dev</title>
+
+    <link rel="stylesheet" href="dist/html-elixir-RXHHCTJW.css" />
+
+    <script defer src="dist/sidebar_items-FCB9427C.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-MI33G4N7.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="BalancedTernaryEngine.html" class="sidebar-projectName" translate="no">
+balanced_ternary_engine
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.1.0-dev
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-extra" id="main" data-type="extras">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of balanced_ternary_engine</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>BalancedTernaryEngine</h1>
+
+<a href="readme.md" title="Copy Markdown (hold Ctrl/Cmd and click it to open as Markdown)" class="copy-markdown icon-action" rel="help">
+  <i class="ri-markdown-line" aria-hidden="true"></i>
+  <span class="sr-only">Copy Markdown</span>
+</a>
+
+
+  </div>
+
+
+<p>A complete Elixir application for converting neural network weights to balanced ternary format <code class="inline">{-1, 0, +1}</code>.</p><h2 id="features" class="section-heading"><a href="#features" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Features</span></h2><ul><li><strong>Safetensors input</strong>: Read HuggingFace <code class="inline">.safetensors</code> checkpoints directly in pure Elixir (f32/f16/bf16/i64) — no Python</li><li><strong>Architecture policies</strong>: <code class="inline">llama</code> / <code class="inline">gpt2</code> / <code class="inline">bert</code> / <code class="inline">vit</code> / <code class="inline">yolo</code> / <code class="inline">imagenet</code> / <code class="inline">llm</code> / <code class="inline">generic</code> mixed-precision rules; GPT-2 Conv1D transposition handled</li><li><strong>Quantization modes</strong>: <code class="inline">twn</code> (Δ = 0.7·mean|W|), <code class="inline">absmean</code> (BitNet b1.58), <code class="inline">delta</code> (fixed threshold + MSE-optimal scales)</li><li><strong>Per-channel scaling</strong>: least-squares optimal scale factors for accuracy recovery</li><li><strong>Binary packing</strong>: 10 trits per 16-bit word (base-3 encoding)</li><li><strong>Sparse encoding</strong>: Index+sign format for high-sparsity layers</li><li><strong>Sensitivity analysis</strong>: Per-layer quantization sensitivity measurement</li><li><strong>Mixed precision</strong>: Sensitive tensors (embeddings, norms, LM head) stored as FP16 records in <code class="inline">.tbin</code> v2</li><li><strong>CLI tool</strong>: Convert, demo, info, and validate commands</li></ul><h2 id="installation" class="section-heading"><a href="#installation" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Installation</span></h2><pre><code class="makeup bash" translate="no"><span class="">cd tools/balanced_ternary_engine
+</span><span class="">mix deps.get
+</span></code></pre><h2 id="quick-start" class="section-heading"><a href="#quick-start" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Quick Start</span></h2><h3 id="convert-a-real-checkpoint-safetensors-tbin" class="section-heading"><a href="#convert-a-real-checkpoint-safetensors-tbin" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Convert a real checkpoint (safetensors → .tbin)</span></h3><pre><code class="makeup bash" translate="no"><span class="">mix run -e &#39;BalancedTernaryEngine.CLI.main([&quot;convert&quot;, &quot;--input&quot;, &quot;model.safetensors&quot;, &quot;--arch&quot;, &quot;llama&quot;, &quot;--mode&quot;, &quot;absmean&quot;])&#39;
+</span></code></pre><p>Options:</p><ul><li><code class="inline">--arch llama|gpt2|bert|vit|yolo|imagenet|llm|generic</code> — mixed-precision policy</li><li><code class="inline">--profile yolo|imagenet|llm</code> — shortcut for the matching architecture policy</li><li><code class="inline">--mode twn|absmean|delta</code> — quantization rule (<code class="inline">--delta F</code> sets the threshold for <code class="inline">delta</code>)</li><li><code class="inline">--output PATH</code> — output file (default: <code class="inline">&lt;input basename&gt;.tbin</code>)</li></ul><p>Then inspect and validate:</p><pre><code class="makeup bash" translate="no"><span class="">mix run -e &#39;BalancedTernaryEngine.CLI.main([&quot;info&quot;, &quot;--model&quot;, &quot;model.tbin&quot;])&#39;
+</span><span class="">mix run -e &#39;BalancedTernaryEngine.CLI.main([&quot;validate&quot;, &quot;--model&quot;, &quot;model.tbin&quot;])&#39;
+</span></code></pre><h3 id="run-the-demo" class="section-heading"><a href="#run-the-demo" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Run the demo</span></h3><pre><code class="makeup bash" translate="no"><span class="">mix run -e &quot;BalancedTernaryEngine.CLI.main([\&quot;demo\&quot;])&quot;
+</span></code></pre><h3 id="convert-synthetic-model-to-tbin" class="section-heading"><a href="#convert-synthetic-model-to-tbin" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Convert synthetic model to .tbin</span></h3><pre><code class="makeup bash" translate="no"><span class="">mix run -e &quot;BalancedTernaryEngine.CLI.main([\&quot;convert\&quot;, \&quot;--delta\&quot;, \&quot;0.5\&quot;, \&quot;--output\&quot;, \&quot;model.tbin\&quot;])&quot;
+</span></code></pre><h3 id="inspect-a-tbin-file" class="section-heading"><a href="#inspect-a-tbin-file" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Inspect a .tbin file</span></h3><pre><code class="makeup bash" translate="no"><span class="">mix run -e &quot;BalancedTernaryEngine.CLI.main([\&quot;info\&quot;, \&quot;--model\&quot;, \&quot;model.tbin\&quot;])&quot;
+</span></code></pre><h3 id="validate-a-tbin-file" class="section-heading"><a href="#validate-a-tbin-file" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Validate a .tbin file</span></h3><pre><code class="makeup bash" translate="no"><span class="">mix run -e &quot;BalancedTernaryEngine.CLI.main([\&quot;validate\&quot;, \&quot;--model\&quot;, \&quot;model.tbin\&quot;])&quot;
+</span></code></pre><h3 id="run-as-escript" class="section-heading"><a href="#run-as-escript" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Run as escript</span></h3><pre><code class="makeup bash" translate="no"><span class="">mix escript.build
+</span><span class="">./balanced_ternary_engine demo --rows 128 --cols 256 --delta 0.5
+</span><span class="">./balanced_ternary_engine convert --delta 0.5 --output my_model.tbin
+</span><span class="">./balanced_ternary_engine info --model my_model.tbin
+</span></code></pre><h2 id="library-usage" class="section-heading"><a href="#library-usage" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Library Usage</span></h2><pre><code class="makeup elixir" translate="no"><span class="c1"># End-to-end: real safetensors checkpoint → .tbin</span><span class="w">
+</span><span class="p" data-group-id="group-1">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="n">summary</span><span class="p" data-group-id="group-1">}</span><span class="w"> </span><span class="o">=</span><span class="w">
+  </span><span class="nc">BalancedTernaryEngine.Pipeline</span><span class="o">.</span><span class="n">run</span><span class="p" data-group-id="group-2">(</span><span class="s">&quot;model.safetensors&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;model.tbin&quot;</span><span class="p">,</span><span class="w">
+    </span><span class="ss">arch</span><span class="p">:</span><span class="w"> </span><span class="ss">:llama</span><span class="p">,</span><span class="w">
+    </span><span class="ss">mode</span><span class="p">:</span><span class="w"> </span><span class="ss">:absmean</span><span class="w">
+  </span><span class="p" data-group-id="group-2">)</span><span class="w">
+
+</span><span class="n">summary</span><span class="o">.</span><span class="n">ternary_layers</span><span class="w">   </span><span class="c1"># [%Layer{}] — packed trits + scales</span><span class="w">
+</span><span class="n">summary</span><span class="o">.</span><span class="n">fp16_layers</span><span class="w">      </span><span class="c1"># [%RawLayer{}] — kept dense (embeddings, norms, lm_head)</span><span class="w">
+</span><span class="n">summary</span><span class="o">.</span><span class="n">stats</span><span class="w">            </span><span class="c1"># %{sparsity: ..., compression_ratio: ...}</span><span class="w">
+
+</span><span class="c1"># Create a ternary layer from weights</span><span class="w">
+</span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">Nx</span><span class="o">.</span><span class="n">random_uniform</span><span class="p" data-group-id="group-3">(</span><span class="p" data-group-id="group-4">{</span><span class="mi">256</span><span class="p">,</span><span class="w"> </span><span class="mi">512</span><span class="p" data-group-id="group-4">}</span><span class="p" data-group-id="group-3">)</span><span class="w">
+</span><span class="n">layer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine</span><span class="o">.</span><span class="n">convert_layer</span><span class="p" data-group-id="group-5">(</span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;fc1&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">delta</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p" data-group-id="group-5">)</span><span class="w">
+
+</span><span class="c1"># Run inference</span><span class="w">
+</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">Nx</span><span class="o">.</span><span class="n">random_uniform</span><span class="p" data-group-id="group-6">(</span><span class="p" data-group-id="group-7">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">512</span><span class="p" data-group-id="group-7">}</span><span class="p" data-group-id="group-6">)</span><span class="w">
+</span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine</span><span class="o">.</span><span class="n">inference</span><span class="p" data-group-id="group-8">(</span><span class="p" data-group-id="group-9">[</span><span class="n">layer</span><span class="p" data-group-id="group-9">]</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p" data-group-id="group-8">)</span><span class="w">
+
+</span><span class="c1"># Convert a full model</span><span class="w">
+</span><span class="n">weights</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="group-10">%{</span><span class="w">
+  </span><span class="s">&quot;fc1&quot;</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nc">Nx</span><span class="o">.</span><span class="n">random_uniform</span><span class="p" data-group-id="group-11">(</span><span class="p" data-group-id="group-12">{</span><span class="mi">256</span><span class="p">,</span><span class="w"> </span><span class="mi">512</span><span class="p" data-group-id="group-12">}</span><span class="p" data-group-id="group-11">)</span><span class="p">,</span><span class="w">
+  </span><span class="s">&quot;fc2&quot;</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nc">Nx</span><span class="o">.</span><span class="n">random_uniform</span><span class="p" data-group-id="group-13">(</span><span class="p" data-group-id="group-14">{</span><span class="mi">128</span><span class="p">,</span><span class="w"> </span><span class="mi">256</span><span class="p" data-group-id="group-14">}</span><span class="p" data-group-id="group-13">)</span><span class="p">,</span><span class="w">
+  </span><span class="s">&quot;fc3&quot;</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nc">Nx</span><span class="o">.</span><span class="n">random_uniform</span><span class="p" data-group-id="group-15">(</span><span class="p" data-group-id="group-16">{</span><span class="mi">64</span><span class="p">,</span><span class="w"> </span><span class="mi">128</span><span class="p" data-group-id="group-16">}</span><span class="p" data-group-id="group-15">)</span><span class="w">
+</span><span class="p" data-group-id="group-10">}</span><span class="w">
+</span><span class="n">layers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine</span><span class="o">.</span><span class="n">convert_all</span><span class="p" data-group-id="group-17">(</span><span class="n">weights</span><span class="p">,</span><span class="w"> </span><span class="ss">delta</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p" data-group-id="group-17">)</span><span class="w">
+
+</span><span class="c1"># Analyze sensitivity</span><span class="w">
+</span><span class="n">sample_input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">Nx</span><span class="o">.</span><span class="n">random_uniform</span><span class="p" data-group-id="group-18">(</span><span class="p" data-group-id="group-19">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">512</span><span class="p" data-group-id="group-19">}</span><span class="p" data-group-id="group-18">)</span><span class="w">
+</span><span class="n">sensitivities</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine</span><span class="o">.</span><span class="n">analyze_sensitivity</span><span class="p" data-group-id="group-20">(</span><span class="n">weights</span><span class="p">,</span><span class="w"> </span><span class="n">sample_input</span><span class="p" data-group-id="group-20">)</span><span class="w">
+
+</span><span class="c1"># Auto mixed precision</span><span class="w">
+</span><span class="p" data-group-id="group-21">{</span><span class="n">assignment</span><span class="p">,</span><span class="w"> </span><span class="n">n_ternary</span><span class="p">,</span><span class="w"> </span><span class="n">n_fp16</span><span class="p" data-group-id="group-21">}</span><span class="w"> </span><span class="o">=</span><span class="w">
+  </span><span class="nc">BalancedTernaryEngine</span><span class="o">.</span><span class="n">auto_mixed_precision</span><span class="p" data-group-id="group-22">(</span><span class="n">weights</span><span class="p">,</span><span class="w"> </span><span class="n">sample_input</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">0.99</span><span class="p" data-group-id="group-22">)</span><span class="w">
+
+</span><span class="c1"># Export to .tbin</span><span class="w">
+</span><span class="ss">:ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine</span><span class="o">.</span><span class="n">export</span><span class="p" data-group-id="group-23">(</span><span class="n">layers</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;model.tbin&quot;</span><span class="p">,</span><span class="w">
+  </span><span class="ss">metadata</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="group-24">%{</span><span class="ss">model_name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my_model&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1.0.0&quot;</span><span class="p" data-group-id="group-24">}</span><span class="w">
+</span><span class="p" data-group-id="group-23">)</span><span class="w">
+
+</span><span class="c1"># Load from .tbin</span><span class="w">
+</span><span class="p" data-group-id="group-25">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="n">loaded_layers</span><span class="p">,</span><span class="w"> </span><span class="n">metadata</span><span class="p" data-group-id="group-25">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine</span><span class="o">.</span><span class="n">load</span><span class="p" data-group-id="group-26">(</span><span class="s">&quot;model.tbin&quot;</span><span class="p" data-group-id="group-26">)</span><span class="w">
+
+</span><span class="c1"># Get statistics</span><span class="w">
+</span><span class="n">stats</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine</span><span class="o">.</span><span class="n">stats</span><span class="p" data-group-id="group-27">(</span><span class="n">layers</span><span class="p" data-group-id="group-27">)</span><span class="w">
+</span><span class="c1"># %{num_layers: 3, total_parameters: ..., compression_ratio: ...}</span></code></pre><h2 id="runtime-and-model-format" class="section-heading"><a href="#runtime-and-model-format" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Runtime and Model Format</span></h2><pre><code class="makeup elixir" translate="no"><span class="p" data-group-id="group-1">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="n">rt</span><span class="p" data-group-id="group-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine.Runtime</span><span class="o">.</span><span class="n">load</span><span class="p" data-group-id="group-2">(</span><span class="s">&quot;model.tbin&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="group-3">%{</span><span class="ss">num_heads</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p" data-group-id="group-3">}</span><span class="p" data-group-id="group-2">)</span><span class="w">
+</span><span class="p" data-group-id="group-4">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="n">rt</span><span class="p" data-group-id="group-4">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="group-5">{</span><span class="nc">BalancedTernaryEngine.Runtime</span><span class="o">.</span><span class="n">forward</span><span class="p" data-group-id="group-6">(</span><span class="n">rt</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p" data-group-id="group-6">)</span><span class="p">,</span><span class="w"> </span><span class="n">rt</span><span class="p" data-group-id="group-5">}</span><span class="w">
+</span><span class="p" data-group-id="group-7">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="n">version</span><span class="p" data-group-id="group-7">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine.Exporter</span><span class="o">.</span><span class="n">format_version</span><span class="p" data-group-id="group-8">(</span><span class="s">&quot;model.tbin&quot;</span><span class="p" data-group-id="group-8">)</span></code></pre><p>The <code class="inline">.tbin</code> format version is reported by <code class="inline">mix</code> <code class="inline">info</code> and <code class="inline">Exporter.format_version/1</code>.</p><h2 id="publishing-to-hex-pm" class="section-heading"><a href="#publishing-to-hex-pm" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Publishing to Hex.pm</span></h2><pre><code class="makeup bash" translate="no"><span class="">mix test
+</span><span class="">mix docs
+</span><span class="">mix hex.build
+</span><span class="">mix hex.publish
+</span></code></pre><h2 id="production-utilities" class="section-heading"><a href="#production-utilities" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Production Utilities</span></h2><pre><code class="makeup elixir" translate="no"><span class="nc">BalancedTernaryEngine.Validation</span><span class="o">.</span><span class="n">validate_tensor</span><span class="p" data-group-id="group-1">(</span><span class="n">tensor</span><span class="p" data-group-id="group-1">)</span><span class="w">
+</span><span class="nc">BalancedTernaryEngine.Benchmark</span><span class="o">.</span><span class="n">measure</span><span class="p" data-group-id="group-2">(</span><span class="k" data-group-id="group-3">fn</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">work</span><span class="w"> </span><span class="k" data-group-id="group-3">end</span><span class="p" data-group-id="group-2">)</span><span class="w">
+</span><span class="nc">BalancedTernaryEngine.Exporter</span><span class="o">.</span><span class="n">validate</span><span class="p" data-group-id="group-4">(</span><span class="s">&quot;model.tbin&quot;</span><span class="p" data-group-id="group-4">)</span></code></pre><h2 id="running-tests" class="section-heading"><a href="#running-tests" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Running Tests</span></h2><pre><code class="makeup bash" translate="no"><span class="">mix test
+</span></code></pre><h2 id="project-structure" class="section-heading"><a href="#project-structure" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Project Structure</span></h2><pre><code class="makeup elixir" translate="no"><span class="n">balanced_ternary_engine</span><span class="o">/</span><span class="w">
+</span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">lib</span><span class="o">/</span><span class="w">
+</span><span class="err">│</span><span class="w">   </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">balanced_ternary_engine</span><span class="o">.</span><span class="n">ex</span><span class="w">        </span><span class="c1"># Main API</span><span class="w">
+</span><span class="err">│</span><span class="w">   </span><span class="err">└</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">balanced_ternary_engine</span><span class="o">/</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">quantizer</span><span class="o">.</span><span class="n">ex</span><span class="w">                  </span><span class="c1"># Modes delta|twn|absmean, auto-threshold</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">packer</span><span class="o">.</span><span class="n">ex</span><span class="w">                     </span><span class="c1"># Binary packing (10→16, sparse)</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">layer</span><span class="o">.</span><span class="n">ex</span><span class="w">                      </span><span class="c1"># Ternary layer struct + forward pass</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">raw_layer</span><span class="o">.</span><span class="n">ex</span><span class="w">                  </span><span class="c1"># FP16 records for sensitive tensors</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">exporter</span><span class="o">.</span><span class="n">ex</span><span class="w">                   </span><span class="c1"># .tbin v2 export/import (mixed)</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">safetensors</span><span class="o">.</span><span class="n">ex</span><span class="w">                </span><span class="c1"># Pure-Elixir safetensors reader/writer</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">architectures</span><span class="o">.</span><span class="n">ex</span><span class="w">              </span><span class="c1"># llama/gpt2/bert/vit policies</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">pipeline</span><span class="o">.</span><span class="n">ex</span><span class="w">                   </span><span class="c1"># End-to-end conversion</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">sensitivity</span><span class="o">.</span><span class="n">ex</span><span class="w">                </span><span class="c1"># Per-layer sensitivity analysis</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">stats</span><span class="o">.</span><span class="n">ex</span><span class="w">                      </span><span class="c1"># Aggregate statistics</span><span class="w">
+</span><span class="err">│</span><span class="w">       </span><span class="err">└</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">cli</span><span class="o">.</span><span class="n">ex</span><span class="w">                        </span><span class="c1"># Command-line interface</span><span class="w">
+</span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">test</span><span class="o">/</span><span class="w">
+</span><span class="err">│</span><span class="w">   </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">quantizer_test</span><span class="o">.</span><span class="n">exs</span><span class="w">
+</span><span class="err">│</span><span class="w">   </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">packer_test</span><span class="o">.</span><span class="n">exs</span><span class="w">
+</span><span class="err">│</span><span class="w">   </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">layer_test</span><span class="o">.</span><span class="n">exs</span><span class="w">
+</span><span class="err">│</span><span class="w">   </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">safetensors_test</span><span class="o">.</span><span class="n">exs</span><span class="w">
+</span><span class="err">│</span><span class="w">   </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">architectures_test</span><span class="o">.</span><span class="n">exs</span><span class="w">
+</span><span class="err">│</span><span class="w">   </span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">pipeline_test</span><span class="o">.</span><span class="n">exs</span><span class="w">
+</span><span class="err">│</span><span class="w">   </span><span class="err">└</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">integration_test</span><span class="o">.</span><span class="n">exs</span><span class="w">
+</span><span class="err">├</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="n">mix</span><span class="o">.</span><span class="n">exs</span><span class="w">
+</span><span class="err">└</span><span class="err">─</span><span class="err">─</span><span class="w"> </span><span class="nc">README</span><span class="o">.</span><span class="n">md</span></code></pre><h2 id="module-overview" class="section-heading"><a href="#module-overview" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Module Overview</span></h2><table><thead><tr><th style="text-align: left;">Module</th><th style="text-align: left;">Purpose</th></tr></thead><tbody><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.html"><code class="inline">BalancedTernaryEngine</code></a></td><td style="text-align: left;">Main API: convert, inference, export, stats, validate</td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.Pipeline.html"><code class="inline">BalancedTernaryEngine.Pipeline</code></a></td><td style="text-align: left;">End-to-end: safetensors → classify → quantize → .tbin</td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.Quantizer.html"><code class="inline">BalancedTernaryEngine.Quantizer</code></a></td><td style="text-align: left;"><code class="inline">quantize/2</code> modes, <code class="inline">twn_delta/1</code>, <code class="inline">auto_threshold/2</code>, <code class="inline">quality_metrics/2</code></td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.Safetensors.html"><code class="inline">BalancedTernaryEngine.Safetensors</code></a></td><td style="text-align: left;">Pure-Elixir <code class="inline">.safetensors</code> reader/writer</td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.Architectures.html"><code class="inline">BalancedTernaryEngine.Architectures</code></a></td><td style="text-align: left;">Per-architecture mixed-precision classification + transforms</td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.Packer.html"><code class="inline">BalancedTernaryEngine.Packer</code></a></td><td style="text-align: left;"><code class="inline">pack/1</code>, <code class="inline">unpack/2</code>, <code class="inline">pack_sparse/1</code>, <code class="inline">compression_ratio/1</code></td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.Layer.html"><code class="inline">BalancedTernaryEngine.Layer</code></a></td><td style="text-align: left;"><code class="inline">from_dense/3</code>, <code class="inline">forward/2</code>, <code class="inline">forward_nx/2</code>, <code class="inline">to_binary/1</code></td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.RawLayer.html"><code class="inline">BalancedTernaryEngine.RawLayer</code></a></td><td style="text-align: left;">FP16 dense record for embeddings/norms/LM head</td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.Exporter.html"><code class="inline">BalancedTernaryEngine.Exporter</code></a></td><td style="text-align: left;"><code class="inline">export/3</code>, <code class="inline">load/1</code> for .tbin v1/v2 format</td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.Sensitivity.html"><code class="inline">BalancedTernaryEngine.Sensitivity</code></a></td><td style="text-align: left;"><code class="inline">analyze/3</code>, <code class="inline">auto_mixed_precision/4</code></td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.Stats.html"><code class="inline">BalancedTernaryEngine.Stats</code></a></td><td style="text-align: left;">Aggregate size/sparsity statistics over mixed layers</td></tr><tr><td style="text-align: left;"><a href="BalancedTernaryEngine.CLI.html"><code class="inline">BalancedTernaryEngine.CLI</code></a></td><td style="text-align: left;">CLI: convert, demo, info, validate</td></tr></tbody></table><h2 id="tbin-format" class="section-heading"><a href="#tbin-format" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">.tbin Format</span></h2><p>Binary format for storing ternary models (version 2):</p><pre><code class="makeup elixir" translate="no"><span class="p" data-group-id="group-1">[</span><span class="nc">Header</span><span class="p" data-group-id="group-1">]</span><span class="p" data-group-id="group-2">[</span><span class="nc">Record</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="group-2">]</span><span class="p" data-group-id="group-3">[</span><span class="nc">Record</span><span class="w"> </span><span class="mi">2</span><span class="p" data-group-id="group-3">]</span><span class="n">...</span><span class="p" data-group-id="group-4">[</span><span class="nc">Record</span><span class="w"> </span><span class="nc">N</span><span class="p" data-group-id="group-4">]</span><span class="w">
+
+</span><span class="ss">Header</span><span class="p">:</span><span class="w">
+  </span><span class="ss">magic</span><span class="p">:</span><span class="w">       </span><span class="s">&quot;TBN</span><span class="se">\0</span><span class="s">&quot;</span><span class="w"> </span><span class="p" data-group-id="group-5">(</span><span class="mi">4</span><span class="w"> </span><span class="n">bytes</span><span class="p" data-group-id="group-5">)</span><span class="w">
+  </span><span class="ss">version</span><span class="p">:</span><span class="w">     </span><span class="n">uint32</span><span class="w"> </span><span class="p" data-group-id="group-6">(</span><span class="mi">2</span><span class="p" data-group-id="group-6">)</span><span class="w">
+  </span><span class="ss">num_layers</span><span class="p">:</span><span class="w">  </span><span class="n">uint32</span><span class="w">
+  </span><span class="ss">meta_len</span><span class="p">:</span><span class="w">    </span><span class="n">uint32</span><span class="w">
+  </span><span class="ss">metadata</span><span class="p">:</span><span class="w">    </span><span class="nc">JSON</span><span class="w"> </span><span class="p" data-group-id="group-7">(</span><span class="n">meta_len</span><span class="w"> </span><span class="n">bytes</span><span class="p" data-group-id="group-7">)</span><span class="w">
+
+</span><span class="nc">Per</span><span class="w"> </span><span class="ss">record</span><span class="p">:</span><span class="w">
+  </span><span class="ss">kind</span><span class="p">:</span><span class="w">        </span><span class="n">uint8</span><span class="w">  </span><span class="p" data-group-id="group-8">(</span><span class="mi">0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ternary</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">raw</span><span class="w"> </span><span class="nc">FP16</span><span class="p" data-group-id="group-8">)</span><span class="w">
+  </span><span class="ss">size</span><span class="p">:</span><span class="w">        </span><span class="n">uint32</span><span class="w">
+  </span><span class="ss">payload</span><span class="p">:</span><span class="w">
+    </span><span class="ss">ternary</span><span class="p">:</span><span class="w">
+      </span><span class="ss">name_len</span><span class="p">:</span><span class="w">    </span><span class="n">uint16</span><span class="w">
+      </span><span class="ss">name</span><span class="p">:</span><span class="w">        </span><span class="nc">UTF</span><span class="o">-</span><span class="mi">8</span><span class="w"> </span><span class="n">bytes</span><span class="w">
+      </span><span class="ss">out_feat</span><span class="p">:</span><span class="w">    </span><span class="n">uint32</span><span class="w">
+      </span><span class="ss">in_feat</span><span class="p">:</span><span class="w">     </span><span class="n">uint32</span><span class="w">
+      </span><span class="ss">delta</span><span class="p">:</span><span class="w">       </span><span class="n">float32</span><span class="w">
+      </span><span class="ss">sparsity</span><span class="p">:</span><span class="w">    </span><span class="n">float32</span><span class="w">
+      </span><span class="ss">scales</span><span class="p">:</span><span class="w">      </span><span class="n">num_scales</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="n">float16</span><span class="w">
+      </span><span class="ss">biases</span><span class="p">:</span><span class="w">      </span><span class="n">num_biases</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="n">float16</span><span class="w">
+      </span><span class="ss">weights</span><span class="p">:</span><span class="w">     </span><span class="n">packed</span><span class="w"> </span><span class="n">trits</span><span class="w"> </span><span class="p" data-group-id="group-9">(</span><span class="mi">10</span><span class="w"> </span><span class="n">per</span><span class="w"> </span><span class="mi">16</span><span class="o">-</span><span class="n">bit</span><span class="w"> </span><span class="n">word</span><span class="p" data-group-id="group-9">)</span><span class="w">
+    </span><span class="n">raw</span><span class="w"> </span><span class="ss">fp16</span><span class="p">:</span><span class="w">
+      </span><span class="ss">name_len</span><span class="p">:</span><span class="w">    </span><span class="n">uint16</span><span class="w">
+      </span><span class="ss">name</span><span class="p">:</span><span class="w">        </span><span class="nc">UTF</span><span class="o">-</span><span class="mi">8</span><span class="w"> </span><span class="n">bytes</span><span class="w">
+      </span><span class="ss">ndims</span><span class="p">:</span><span class="w">       </span><span class="n">uint8</span><span class="w">
+      </span><span class="ss">dims</span><span class="p">:</span><span class="w">        </span><span class="n">ndims</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="n">uint32</span><span class="w">
+      </span><span class="ss">data</span><span class="p">:</span><span class="w">        </span><span class="n">flat</span><span class="w"> </span><span class="n">f16</span><span class="w"> </span><span class="n">payload</span><span class="w">
+
+</span><span class="nc">Version</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="n">files</span><span class="w"> </span><span class="p" data-group-id="group-10">(</span><span class="n">ternary</span><span class="o">-</span><span class="n">only</span><span class="p">,</span><span class="w"> </span><span class="n">no</span><span class="w"> </span><span class="n">kind</span><span class="w"> </span><span class="n">byte</span><span class="p" data-group-id="group-10">)</span><span class="w"> </span><span class="n">remain</span><span class="w"> </span><span class="n">readable</span><span class="o">.</span></code></pre><h2 id="license" class="section-heading"><a href="#license" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">License</span></h2><p>See the project LICENSE file.</p>
+
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="changelog.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Changelog
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/balanced_ternary_engine/0.1.0-dev">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/balanced_ternary_engine/0.1.0-dev">Hex Preview</a>
+
+                (<a href="https://preview.hex.pm/preview/balanced_ternary_engine/0.1.0-dev/show/README.md">current file</a>)
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+              <a href="llms.txt" target="_blank">
+                View llms.txt
+              </a>
+
+
+              <a href="balanced_ternary_engine.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.4) for the
+
+            <a href="https://elixir-lang.org" title="Elixir" target="_blank" translate="no">Elixir programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

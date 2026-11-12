@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.4">
+    <meta name="project" content="balanced_ternary_engine v0.1.0-dev">
+
+
+    <title>BalancedTernaryEngine.Quantizer — balanced_ternary_engine v0.1.0-dev</title>
+
+    <link rel="stylesheet" href="dist/html-elixir-RXHHCTJW.css" />
+
+    <script defer src="dist/sidebar_items-FCB9427C.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-MI33G4N7.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="BalancedTernaryEngine.html" class="sidebar-projectName" translate="no">
+balanced_ternary_engine
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.1.0-dev
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of balanced_ternary_engine</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">BalancedTernaryEngine.<wbr />Quantizer</span> 
+      <small class="app-vsn" translate="no">(balanced_ternary_engine v0.1.0-dev)</small>
+
+    </h1>
+
+<a href="BalancedTernaryEngine.Quantizer.md" title="Copy Markdown (hold Ctrl/Cmd and click it to open as Markdown)" class="copy-markdown icon-action" rel="help">
+  <i class="ri-markdown-line" aria-hidden="true"></i>
+  <span class="sr-only">Copy Markdown</span>
+</a>
+
+
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>Converts full-precision weight tensors to balanced ternary {-1, 0, +1}.</p><p>Three quantization modes are supported (see <a href="#quantize/2"><code class="inline">quantize/2</code></a>):</p><ul><li><code class="inline">:delta</code>   — user-supplied threshold, per-channel MSE-optimal scales</li><li><code class="inline">:twn</code>     — Ternary Weight Networks rule: Δ = 0.7 × mean(|W|)</li><li><code class="inline">:absmean</code> — BitNet b1.58 rule: normalize by mean(|W|), round to nearest trit</li></ul><p>Also provides automatic threshold selection via bisection on target
+sparsity, outlier-clipped scale calibration, and quality metrics
+(sparsity, MSE, SQNR).</p>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:mode/0" data-no-tooltip="" translate="no">mode()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:tensor/0" data-no-tooltip="" translate="no">tensor()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trit/0" data-no-tooltip="" translate="no">trit()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#auto_threshold/2" data-no-tooltip="" translate="no">auto_threshold(weights, target_sparsity \\ 0.5)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Find the threshold that yields a target zero-fraction via bisection.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#compute_scales/2" data-no-tooltip="" translate="no">compute_scales(weights, delta)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Compute per-channel MSE-optimal scale factors.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#compute_scales_clipped/3" data-no-tooltip="" translate="no">compute_scales_clipped(weights, delta, clip_sigma \\ 3.0)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Compute per-channel scale factors with outlier clipping.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#quality_metrics/2" data-no-tooltip="" translate="no">quality_metrics(original, delta)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Compute quantization quality metrics.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#quantize/2" data-no-tooltip="" translate="no">quantize(w, opts \\ [])</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Quantize a weight tensor to trits plus per-channel scales.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#ternarize/2" data-no-tooltip="" translate="no">ternarize(w, delta)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Ternarize a tensor with a fixed threshold.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#ternarize_scaled/3" data-no-tooltip="" translate="no">ternarize_scaled(w, scales, delta)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Ternarize with per-channel scale factors.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#twn_delta/1" data-no-tooltip="" translate="no">twn_delta(w)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>TWN threshold rule: Δ = 0.7 × mean(|W|).</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:mode/0">
+
+  <div class="detail-header">
+    <a href="#t:mode/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">mode()</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@type</span> mode() :: :delta | :twn | :absmean</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:tensor/0">
+
+  <div class="detail-header">
+    <a href="#t:tensor/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">tensor()</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@type</span> tensor() :: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trit/0">
+
+  <div class="detail-header">
+    <a href="#t:trit/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">trit()</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@type</span> trit() :: -1 | 0 | 1</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="auto_threshold/2">
+
+    <span id="auto_threshold/1"></span>
+
+  <div class="detail-header">
+    <a href="#auto_threshold/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">auto_threshold(weights, target_sparsity \\ 0.5)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> auto_threshold(<a href="#t:tensor/0">tensor</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()) :: {<a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()}</pre>
+
+      </div>
+
+<p>Find the threshold that yields a target zero-fraction via bisection.</p><p>The fraction of weights in [-Δ, Δ] increases monotonically with Δ, so
+the target sparsity has a unique root on [0, 4σ]. Returns
+<code class="inline">{delta, actual_sparsity}</code>.</p><p>Returns <code class="inline">{optimal_delta, actual_sparsity}</code>.</p>
+  </section>
+</section>
+<section class="detail" id="compute_scales/2">
+
+  <div class="detail-header">
+    <a href="#compute_scales/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">compute_scales(weights, delta)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> compute_scales(<a href="#t:tensor/0">tensor</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()) :: <a href="#t:tensor/0">tensor</a>()</pre>
+
+      </div>
+
+<p>Compute per-channel MSE-optimal scale factors.</p><p>For each output channel j:
+  α_j = sum(W_j <em> T_j) / sum(T_j </em> T_j)</p><h2 id="compute_scales/2-examples" class="section-heading"><a href="#compute_scales/2-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="gp unselectable">iex&gt; </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">Nx</span><span class="o">.</span><span class="n">tensor</span><span class="p" data-group-id="group-1">(</span><span class="p" data-group-id="group-2">[</span><span class="p" data-group-id="group-3">[</span><span class="mf">0.8</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.3</span><span class="p">,</span><span class="w"> </span><span class="mf">0.1</span><span class="p" data-group-id="group-3">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="group-4">[</span><span class="o">-</span><span class="mf">0.9</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.2</span><span class="p" data-group-id="group-4">]</span><span class="p" data-group-id="group-2">]</span><span class="p" data-group-id="group-1">)</span><span class="w">
+</span><span class="gp unselectable">iex&gt; </span><span class="n">scales</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">BalancedTernaryEngine.Quantizer</span><span class="o">.</span><span class="n">compute_scales</span><span class="p" data-group-id="group-5">(</span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="mf">0.4</span><span class="p" data-group-id="group-5">)</span><span class="w">
+</span><span class="gp unselectable">iex&gt; </span><span class="nc">Nx</span><span class="o">.</span><span class="n">to_flat_list</span><span class="p" data-group-id="group-6">(</span><span class="n">scales</span><span class="p" data-group-id="group-6">)</span><span class="w">
+</span><span class="p" data-group-id="group-7">[</span><span class="mf">0.5666666626930237</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5399999618530273</span><span class="p" data-group-id="group-7">]</span></code></pre>
+  </section>
+</section>
+<section class="detail" id="compute_scales_clipped/3">
+
+    <span id="compute_scales_clipped/2"></span>
+
+  <div class="detail-header">
+    <a href="#compute_scales_clipped/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">compute_scales_clipped(weights, delta, clip_sigma \\ 3.0)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> compute_scales_clipped(<a href="#t:tensor/0">tensor</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()) :: <a href="#t:tensor/0">tensor</a>()</pre>
+
+      </div>
+
+<p>Compute per-channel scale factors with outlier clipping.</p><p>Before computing scales, clips each channel to ±3σ to prevent
+outlier weights from dominating the scale factor.</p>
+  </section>
+</section>
+<section class="detail" id="quality_metrics/2">
+
+  <div class="detail-header">
+    <a href="#quality_metrics/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">quality_metrics(original, delta)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> quality_metrics(<a href="#t:tensor/0">tensor</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()) :: <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">map</a>()</pre>
+
+      </div>
+
+<p>Compute quantization quality metrics.</p><p>Returns a map with:</p><ul><li><code class="inline">:sparsity</code> — fraction of zero weights</li><li><code class="inline">:density</code> — fraction of non-zero weights</li><li><code class="inline">:positive_ratio</code> — fraction of +1 weights (of non-zero)</li><li><code class="inline">:negative_ratio</code> — fraction of -1 weights (of non-zero)</li><li><code class="inline">:mse</code> — mean squared error vs. original</li><li><code class="inline">:sqnr</code> — signal-to-quantization-noise ratio in dB</li></ul>
+  </section>
+</section>
+<section class="detail" id="quantize/2">
+
+    <span id="quantize/1"></span>
+
+  <div class="detail-header">
+    <a href="#quantize/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">quantize(w, opts \\ [])</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> quantize(<a href="#t:tensor/0">tensor</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">keyword</a>()) :: {<a href="#t:tensor/0">tensor</a>(), [<a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()], <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()}</pre>
+
+      </div>
+
+<p>Quantize a weight tensor to trits plus per-channel scales.</p><p>Returns <code class="inline">{trits, scales, delta}</code> where:</p><ul><li><code class="inline">trits</code> — s64 tensor of {-1, 0, +1}, same shape as <code class="inline">w</code></li><li><code class="inline">scales</code> — flat list of per-channel f32 scale factors</li><li><code class="inline">delta</code> — the effective decision threshold used</li></ul><h2 id="quantize/2-modes" class="section-heading"><a href="#quantize/2-modes" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Modes</span></h2><ul><li><code class="inline">:delta</code> — threshold at the given <code class="inline">:delta</code>, per-channel MSE-optimal
+scales αⱼ = (Wⱼ·Tⱼ)/(Tⱼ·Tⱼ)</li><li><code class="inline">:twn</code> — Ternary Weight Networks rule: Δ = 0.7 × mean(|W|), then
+MSE-optimal per-channel scales (Li &amp; Liu, 2016)</li><li><code class="inline">:absmean</code> — BitNet b1.58 rule: T = roundclip(W / mean(|W|), -1, +1),
+single shared scale γ = mean(|W|) for every channel (Ma et al., 2024)</li></ul><h2 id="quantize/2-options" class="section-heading"><a href="#quantize/2-options" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Options</span></h2><ul><li><p><code class="inline">:mode</code> — <code class="inline">:delta</code> | <code class="inline">:twn</code> | <code class="inline">:absmean</code> (default: <code class="inline">:twn</code>)</p></li><li><code class="inline">:delta</code> — threshold used when mode is <code class="inline">:delta</code></li></ul>
+  </section>
+</section>
+<section class="detail" id="ternarize/2">
+
+  <div class="detail-header">
+    <a href="#ternarize/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">ternarize(w, delta)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> ternarize(<a href="#t:tensor/0">tensor</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()) :: <a href="#t:tensor/0">tensor</a>()</pre>
+
+      </div>
+
+<p>Ternarize a tensor with a fixed threshold.</p><p>Values greater than <code class="inline">delta</code> → 1
+Values between [-delta, delta] → 0
+Values less than <code class="inline">-delta</code> → -1</p><h2 id="ternarize/2-examples" class="section-heading"><a href="#ternarize/2-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="gp unselectable">iex&gt; </span><span class="nc">BalancedTernaryEngine.Quantizer</span><span class="o">.</span><span class="n">ternarize</span><span class="p" data-group-id="group-1">(</span><span class="nc">Nx</span><span class="o">.</span><span class="n">tensor</span><span class="p" data-group-id="group-2">(</span><span class="p" data-group-id="group-3">[</span><span class="mf">0.8</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.3</span><span class="p">,</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">0.9</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p" data-group-id="group-3">]</span><span class="p" data-group-id="group-2">)</span><span class="p">,</span><span class="w"> </span><span class="mf">0.4</span><span class="p" data-group-id="group-1">)</span><span class="w">
+</span><span class="p" data-group-id="group-4">#</span><span class="nc" data-group-id="group-4">Nx.Tensor</span><span class="p" data-group-id="group-4">&lt;</span><span class="w">
+  </span><span class="n">s64</span><span class="p" data-group-id="group-5">[</span><span class="mi">5</span><span class="p" data-group-id="group-5">]</span><span class="w">
+  </span><span class="p" data-group-id="group-6">[</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="group-6">]</span><span class="w">
+</span><span class="p" data-group-id="group-4">&gt;</span></code></pre>
+  </section>
+</section>
+<section class="detail" id="ternarize_scaled/3">
+
+  <div class="detail-header">
+    <a href="#ternarize_scaled/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">ternarize_scaled(w, scales, delta)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> ternarize_scaled(<a href="#t:tensor/0">tensor</a>(), <a href="#t:tensor/0">tensor</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()) :: <a href="#t:tensor/0">tensor</a>()</pre>
+
+      </div>
+
+<p>Ternarize with per-channel scale factors.</p><p>Normalizes each row by its scale factor before ternarization,
+then rescales. This is the recommended approach for all linear layers.</p>
+  </section>
+</section>
+<section class="detail" id="twn_delta/1">
+
+  <div class="detail-header">
+    <a href="#twn_delta/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">twn_delta(w)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> twn_delta(<a href="#t:tensor/0">tensor</a>()) :: <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()</pre>
+
+      </div>
+
+<p>TWN threshold rule: Δ = 0.7 × mean(|W|).</p><p>Near-optimal for approximately Gaussian weight distributions and the
+standard choice when no calibration data is available.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/balanced_ternary_engine/0.1.0-dev">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/balanced_ternary_engine/0.1.0-dev">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+              <a href="llms.txt" target="_blank">
+                View llms.txt
+              </a>
+
+
+              <a href="balanced_ternary_engine.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.4) for the
+
+            <a href="https://elixir-lang.org" title="Elixir" target="_blank" translate="no">Elixir programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

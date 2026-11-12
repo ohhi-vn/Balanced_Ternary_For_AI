@@ -1,0 +1,28 @@
+# balanced_ternary_engine v0.1.0-dev - API Reference
+
+## Modules
+
+- [BalancedTernaryEngine](BalancedTernaryEngine.md): Main API for converting pretrained models to balanced ternary format.
+- [BalancedTernaryEngine.Architectures](BalancedTernaryEngine.Architectures.md): Per-architecture mixed-precision policies for common model families.
+- [BalancedTernaryEngine.Benchmark](BalancedTernaryEngine.Benchmark.md): Simple benchmarking helpers for conversion and runtime execution.
+
+- [BalancedTernaryEngine.CLI](BalancedTernaryEngine.CLI.md): Command-line interface for the BalancedTernaryEngine tool.
+- [BalancedTernaryEngine.Exporter](BalancedTernaryEngine.Exporter.md): Exports and imports ternary models to/from .tbin binary format.
+- [BalancedTernaryEngine.Layer](BalancedTernaryEngine.Layer.md): A neural network layer with ternary weights.
+- [BalancedTernaryEngine.Packer](BalancedTernaryEngine.Packer.md): Packs ternary {-1, 0, +1} tensors into compact binary format.
+- [BalancedTernaryEngine.Pipeline](BalancedTernaryEngine.Pipeline.md): End-to-end conversion: safetensors model → `.tbin` balanced ternary model.
+- [BalancedTernaryEngine.QATLayer](BalancedTernaryEngine.QATLayer.md): Quantization-Aware Training layer with ternary weights.
+- [BalancedTernaryEngine.Quantizer](BalancedTernaryEngine.Quantizer.md): Converts full-precision weight tensors to balanced ternary {-1, 0, +1}.
+- [BalancedTernaryEngine.RawLayer](BalancedTernaryEngine.RawLayer.md): A dense weight matrix kept at half precision inside a converted model.
+- [BalancedTernaryEngine.Runtime](BalancedTernaryEngine.Runtime.md): Minimal runtime for executing a converted `.tbin` model.
+- [BalancedTernaryEngine.Safetensors](BalancedTernaryEngine.Safetensors.md): Pure-Elixir reader/writer for the HuggingFace `.safetensors` format.
+- [BalancedTernaryEngine.Sensitivity](BalancedTernaryEngine.Sensitivity.md): Analyzes per-layer sensitivity to ternary quantization.
+- [BalancedTernaryEngine.Stats](BalancedTernaryEngine.Stats.md): Aggregate statistics over a list of model layers.
+- [BalancedTernaryEngine.Validation](BalancedTernaryEngine.Validation.md): Reusable validation helpers for tensors, configs, and model files.
+
+## Mix Tasks
+
+- [mix analyze](Mix.Tasks.Analyze.md): Analyze a .tbin model.
+- [mix convert](Mix.Tasks.Convert.md): Convert a pretrained model to balanced ternary format.
+- [mix infer](Mix.Tasks.Infer.md): Run inference on a .tbin model.
+

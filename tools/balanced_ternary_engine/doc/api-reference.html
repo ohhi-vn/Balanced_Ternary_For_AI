@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.4">
+    <meta name="project" content="balanced_ternary_engine v0.1.0-dev">
+
+
+    <title>API Reference — balanced_ternary_engine v0.1.0-dev</title>
+
+    <link rel="stylesheet" href="dist/html-elixir-RXHHCTJW.css" />
+
+    <script defer src="dist/sidebar_items-FCB9427C.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-MI33G4N7.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="BalancedTernaryEngine.html" class="sidebar-projectName" translate="no">
+balanced_ternary_engine
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.1.0-dev
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-extra" id="main" data-type="extras">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of balanced_ternary_engine</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>API Reference <small class="app-vsn">balanced_ternary_engine v#0.1.0-dev</small></h1>
+<a href="api-reference.md" title="Copy Markdown (hold Ctrl/Cmd and click it to open as Markdown)" class="copy-markdown icon-action" rel="help">
+  <i class="ri-markdown-line" aria-hidden="true"></i>
+  <span class="sr-only">Copy Markdown</span>
+</a>
+
+
+  </div>
+
+    <section class="details-list">
+      <h2 id="modules" class="section-heading">Modules</h2>
+      <div class="summary">
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.html" translate="no">BalancedTernaryEngine</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Main API for converting pretrained models to balanced ternary format.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Architectures.html" translate="no">BalancedTernaryEngine.<wbr />Architectures</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Per-architecture mixed-precision policies for common model families.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Benchmark.html" translate="no">BalancedTernaryEngine.<wbr />Benchmark</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Simple benchmarking helpers for conversion and runtime execution.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.CLI.html" translate="no">BalancedTernaryEngine.<wbr />CLI</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Command-line interface for the BalancedTernaryEngine tool.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Exporter.html" translate="no">BalancedTernaryEngine.<wbr />Exporter</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Exports and imports ternary models to/from .tbin binary format.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Layer.html" translate="no">BalancedTernaryEngine.<wbr />Layer</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>A neural network layer with ternary weights.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Packer.html" translate="no">BalancedTernaryEngine.<wbr />Packer</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Packs ternary {-1, 0, +1} tensors into compact binary format.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Pipeline.html" translate="no">BalancedTernaryEngine.<wbr />Pipeline</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>End-to-end conversion: safetensors model → <code class="inline">.tbin</code> balanced ternary model.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.QATLayer.html" translate="no">BalancedTernaryEngine.<wbr />QATLayer</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Quantization-Aware Training layer with ternary weights.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Quantizer.html" translate="no">BalancedTernaryEngine.<wbr />Quantizer</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Converts full-precision weight tensors to balanced ternary {-1, 0, +1}.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.RawLayer.html" translate="no">BalancedTernaryEngine.<wbr />RawLayer</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>A dense weight matrix kept at half precision inside a converted model.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Runtime.html" translate="no">BalancedTernaryEngine.<wbr />Runtime</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Minimal runtime for executing a converted <code class="inline">.tbin</code> model.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Safetensors.html" translate="no">BalancedTernaryEngine.<wbr />Safetensors</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Pure-Elixir reader/writer for the HuggingFace <code class="inline">.safetensors</code> format.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Sensitivity.html" translate="no">BalancedTernaryEngine.<wbr />Sensitivity</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Analyzes per-layer sensitivity to ternary quantization.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Stats.html" translate="no">BalancedTernaryEngine.<wbr />Stats</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Aggregate statistics over a list of model layers.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="BalancedTernaryEngine.Validation.html" translate="no">BalancedTernaryEngine.<wbr />Validation</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Reusable validation helpers for tensors, configs, and model files.</p></div>
+
+</div>
+
+      </div>
+    </section>
+
+
+    <section class="details-list">
+      <h2 id="tasks" class="section-heading">Mix Tasks</h2>
+      <div class="summary">
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="Mix.Tasks.Analyze.html" translate="no">mix analyze</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Analyze a .tbin model.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="Mix.Tasks.Convert.html" translate="no">mix convert</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Convert a pretrained model to balanced ternary format.</p></div>
+
+</div>
+<div class="summary-row">
+  <div class="summary-signature">
+    <a href="Mix.Tasks.Infer.html" translate="no">mix infer</a>
+
+  </div>
+
+    <div class="summary-synopsis"><p>Run inference on a .tbin model.</p></div>
+
+</div>
+
+      </div>
+    </section>
+
+</div>
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/balanced_ternary_engine/0.1.0-dev">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/balanced_ternary_engine/0.1.0-dev">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+              <a href="llms.txt" target="_blank">
+                View llms.txt
+              </a>
+
+
+              <a href="balanced_ternary_engine.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.4) for the
+
+            <a href="https://elixir-lang.org" title="Elixir" target="_blank" translate="no">Elixir programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.4">
+    <meta name="project" content="balanced_ternary_engine v0.1.0-dev">
+
+
+    <title>BalancedTernaryEngine.QATLayer — balanced_ternary_engine v0.1.0-dev</title>
+
+    <link rel="stylesheet" href="dist/html-elixir-RXHHCTJW.css" />
+
+    <script defer src="dist/sidebar_items-FCB9427C.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-MI33G4N7.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="BalancedTernaryEngine.html" class="sidebar-projectName" translate="no">
+balanced_ternary_engine
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.1.0-dev
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of balanced_ternary_engine</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">BalancedTernaryEngine.<wbr />QATLayer</span> 
+      <small class="app-vsn" translate="no">(balanced_ternary_engine v0.1.0-dev)</small>
+
+    </h1>
+
+<a href="BalancedTernaryEngine.QATLayer.md" title="Copy Markdown (hold Ctrl/Cmd and click it to open as Markdown)" class="copy-markdown icon-action" rel="help">
+  <i class="ri-markdown-line" aria-hidden="true"></i>
+  <span class="sr-only">Copy Markdown</span>
+</a>
+
+
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>Quantization-Aware Training layer with ternary weights.</p><p>Maintains FP32 shadow weights that are ternarized on each forward pass.
+Uses a straight-through estimator (STE) so gradients flow to the shadow
+weights during training: the forward pass uses ternary weights, while
+the gradient is applied to the shadow weights directly.</p><p>This module provides the primitives (ternarize, forward, update, freeze).
+The training loop composes these with a loss and an optimizer step.</p>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:t/0" data-no-tooltip="" translate="no">t()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#forward/2" data-no-tooltip="" translate="no">forward(layer, input)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Forward pass: output = (ternary_weight @ input) + bias.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#freeze/1" data-no-tooltip="" translate="no">freeze(qat_layer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Freeze a QAT layer into a standard BalancedTernaryEngine.Layer for inference.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#from_pretrained/3" data-no-tooltip="" translate="no">from_pretrained(weight_tensor, name, opts \\ [])</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Create a QAT layer from a pretrained weight tensor.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#ternarize/1" data-no-tooltip="" translate="no">ternarize(layer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Ternarize shadow weights. Returns <code class="inline">{effective, shadow}</code> where <code class="inline">effective</code>
+is the ternary (scaled) weight used in the forward pass and <code class="inline">shadow</code> is
+the FP32 shadow weight retained for gradient updates (STE).</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#train_step/4" data-no-tooltip="" translate="no">train_step(layer, input, target, opts \\ [])</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Apply a straight-through training step using a finite-difference
+gradient of the supplied loss function.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#update/3" data-no-tooltip="" translate="no">update(layer, grad, lr)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>SGD update of shadow weights: w_shadow = w_shadow - lr * grad.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#validate_frozen/1" data-no-tooltip="" translate="no">validate_frozen(qat_layer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Freeze and validate a QAT layer.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:t/0">
+
+  <div class="detail-header">
+    <a href="#t:t/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">t()</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@type</span> t() :: %BalancedTernaryEngine.QATLayer{
+  bias: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(),
+  delta: <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>(),
+  name: <a href="https://elixir.hexdocs.pm/String.html#t:t/0">String.t</a>(),
+  scale: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(),
+  weight_shadow: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()
+}</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="forward/2">
+
+  <div class="detail-header">
+    <a href="#forward/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">forward(layer, input)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> forward(<a href="#t:t/0">t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()) :: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()</pre>
+
+      </div>
+
+<p>Forward pass: output = (ternary_weight @ input) + bias.</p>
+  </section>
+</section>
+<section class="detail" id="freeze/1">
+
+  <div class="detail-header">
+    <a href="#freeze/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">freeze(qat_layer)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> freeze(<a href="#t:t/0">t</a>()) :: <a href="BalancedTernaryEngine.Layer.html#t:t/0">BalancedTernaryEngine.Layer.t</a>()</pre>
+
+      </div>
+
+<p>Freeze a QAT layer into a standard BalancedTernaryEngine.Layer for inference.</p>
+  </section>
+</section>
+<section class="detail" id="from_pretrained/3">
+
+    <span id="from_pretrained/2"></span>
+
+  <div class="detail-header">
+    <a href="#from_pretrained/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">from_pretrained(weight_tensor, name, opts \\ [])</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> from_pretrained(<a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://elixir.hexdocs.pm/String.html#t:t/0">String.t</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">keyword</a>()) :: <a href="#t:t/0">t</a>()</pre>
+
+      </div>
+
+<p>Create a QAT layer from a pretrained weight tensor.</p>
+  </section>
+</section>
+<section class="detail" id="ternarize/1">
+
+  <div class="detail-header">
+    <a href="#ternarize/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">ternarize(layer)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> ternarize(<a href="#t:t/0">t</a>()) :: {<a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()}</pre>
+
+      </div>
+
+<p>Ternarize shadow weights. Returns <code class="inline">{effective, shadow}</code> where <code class="inline">effective</code>
+is the ternary (scaled) weight used in the forward pass and <code class="inline">shadow</code> is
+the FP32 shadow weight retained for gradient updates (STE).</p>
+  </section>
+</section>
+<section class="detail" id="train_step/4">
+
+    <span id="train_step/3"></span>
+
+  <div class="detail-header">
+    <a href="#train_step/4" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">train_step(layer, input, target, opts \\ [])</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> train_step(<a href="#t:t/0">t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">keyword</a>()) :: {<a href="#t:t/0">t</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()}</pre>
+
+      </div>
+
+<p>Apply a straight-through training step using a finite-difference
+gradient of the supplied loss function.</p><p><code class="inline">loss_fn</code> receives the layer and returns a scalar loss. The gradient
+w.r.t. the shadow weights is approximated and used to update them.
+Returns the updated layer and the loss value.</p>
+  </section>
+</section>
+<section class="detail" id="update/3">
+
+  <div class="detail-header">
+    <a href="#update/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">update(layer, grad, lr)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> update(<a href="#t:t/0">t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">float</a>()) :: <a href="#t:t/0">t</a>()</pre>
+
+      </div>
+
+<p>SGD update of shadow weights: w_shadow = w_shadow - lr * grad.</p>
+  </section>
+</section>
+<section class="detail" id="validate_frozen/1">
+
+  <div class="detail-header">
+    <a href="#validate_frozen/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">validate_frozen(qat_layer)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> validate_frozen(<a href="#t:t/0">t</a>()) ::
+  {:ok, <a href="BalancedTernaryEngine.Layer.html#t:t/0">BalancedTernaryEngine.Layer.t</a>()} | {:error, <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">term</a>()}</pre>
+
+      </div>
+
+<p>Freeze and validate a QAT layer.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/balanced_ternary_engine/0.1.0-dev">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/balanced_ternary_engine/0.1.0-dev">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+              <a href="llms.txt" target="_blank">
+                View llms.txt
+              </a>
+
+
+              <a href="balanced_ternary_engine.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.4) for the
+
+            <a href="https://elixir-lang.org" title="Elixir" target="_blank" translate="no">Elixir programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

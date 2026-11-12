@@ -70,7 +70,7 @@ flowchart LR
     N --> ACC
 ```
 
-→ Deep dive: [Multiplication Becomes Selection](details/18-multiplication-as-selection.md) — MAC cost model, datapath design, op-count formulas, Elixir simulation.
+→ Deep dive: [Multiplication Becomes Selection](docs/details/18-multiplication-as-selection.md) — MAC cost model, datapath design, op-count formulas, Elixir simulation.
 
 ---
 
@@ -102,7 +102,7 @@ Packing schemes:
 | 10→16  | 10 → 16      | 90%        | Maximum storage density (.tbin default) |
 | 20→32  | 20 → 32      | 81%        | SIMD-friendly access |
 
-→ Deep dive: [Storage Format](details/04-storage-format.md) · [Sparsity Economics](details/19-sparsity-economics.md)
+→ Deep dive: [Storage Format](docs/details/04-storage-format.md) · [Sparsity Economics](docs/details/19-sparsity-economics.md)
 
 ---
 
@@ -119,7 +119,7 @@ Ternary doesn't just quantize — it **combines quantization and pruning into on
 
 Zeros only pay off when hardware can *detect* them instantly, *gate* lanes, and *omit* them from memory traffic.
 
-→ Deep dive: [Sparsity Economics](details/19-sparsity-economics.md) — where zeros come from, savings models, sparse formats, hardware requirements.
+→ Deep dive: [Sparsity Economics](docs/details/19-sparsity-economics.md) — where zeros come from, savings models, sparse formats, hardware requirements.
 
 ---
 
@@ -142,7 +142,7 @@ flowchart TD
     Q -->|"need exact sparsity"| D["Fixed Delta + least-squares alpha, bisection on Delta"]
 ```
 
-→ Deep dive: [Quantization Theory](details/20-quantization-theory.md) — derivations, SQNR analysis, bisection proof, mode-to-flag mapping.
+→ Deep dive: [Quantization Theory](docs/details/20-quantization-theory.md) — derivations, SQNR analysis, bisection proof, mode-to-flag mapping.
 
 ---
 
@@ -162,7 +162,7 @@ Each processing element is just pass/negate/skip — no multiplier, no FP unit. 
 
 Hybrid precision keeps what works: ternary GEMM (~90% of compute), INT8 activations, FP16 for softmax/LayerNorm/attention scores.
 
-→ Deep dives: [Architecture Overview](details/01-architecture-overview.md) · [Hardware Architecture](details/05-hardware-architecture.md) · [Differential Encoding](details/09-differential-encoding.md)
+→ Deep dives: [Architecture Overview](docs/details/01-architecture-overview.md) · [Hardware Architecture](docs/details/05-hardware-architecture.md) · [Differential Encoding](docs/details/09-differential-encoding.md)
 
 ---
 
@@ -185,7 +185,7 @@ xychart-beta
     bar [80, 20, 4]
 ```
 
-→ Deep dive: [Memory Bandwidth Analysis](details/21-memory-bandwidth-analysis.md) — roofline arithmetic, KV cache corrections, batch effects, energy breakdown.
+→ Deep dive: [Memory Bandwidth Analysis](docs/details/21-memory-bandwidth-analysis.md) — roofline arithmetic, KV cache corrections, batch effects, energy breakdown.
 
 ---
 
@@ -193,15 +193,15 @@ xychart-beta
 
 Purpose-built accelerators don't exist yet, but the storage/bandwidth win lands today:
 
-- **GPUs**: packed trits decoded on-device → tensor cores ([CUDA/MLX example](examples/ternary_accel/))
+- **GPUs**: packed trits decoded on-device → tensor cores ([CUDA/MLX example](docs/examples/ternary_accel/))
 - **CPUs**: AMX/NEON dot products on unpacked weights
 - **NPUs/FPGAs**: convert or implement native add/sub/skip datapath
 
-See [Running on Current Hardware](details/11-current-hardware-gpu-cpu-npu.md).
+See [Running on Current Hardware](docs/details/11-current-hardware-gpu-cpu-npu.md).
 
 For maximum efficiency, a purpose-built ASIC reaches ~50K tokens/s (1B model) at ~5 W in 20 mm².
 
-→ Deep dives: [Custom Accelerator Design](details/12-custom-ternary-accelerator-design.md) · [FPGA Experiment Guide](details/16-fpga-experiment-guide.md) · [ASIC Implementation](details/17-asic-implementation-guide.md)
+→ Deep dives: [Custom Accelerator Design](docs/details/12-custom-ternary-accelerator-design.md) · [FPGA Experiment Guide](docs/details/16-fpga-experiment-guide.md) · [ASIC Implementation](docs/details/17-asic-implementation-guide.md)
 
 ---
 
@@ -217,7 +217,7 @@ flowchart TD
     QAT --> TB
 ```
 
-A complete pure-Elixir toolkit ships in [`tools/ternary_converter/`](tools/ternary_converter/):
+A complete pure-Elixir toolkit ships in [`tools/balanced_ternary_engine/`](tools/balanced_ternary_engine/):
 
 ```bash
 # Real HuggingFace checkpoints → .tbin (no Python required)
@@ -232,7 +232,7 @@ mix run -e 'TernaryConverter.CLI.main(["validate", "--model", "model.tbin"])'
 - Quantization modes: `twn` / `absmean` / `delta` (+ exact target-sparsity bisection)
 - Sensitive layers (embeddings, norms, LM head) preserved as FP16 records
 
-→ Deep dive: [Model Conversion Guide](details/13-model-conversion-guide.md). Run converted weights on GPU via [`examples/ternary_accel/`](examples/ternary_accel/).
+→ Deep dive: [Model Conversion Guide](docs/details/13-model-conversion-guide.md). Run converted weights on GPU via [`docs/examples/ternary_accel/`](docs/examples/ternary_accel/).
 
 ---
 
@@ -250,7 +250,7 @@ mix run -e 'TernaryConverter.CLI.main(["validate", "--model", "model.tbin"])'
 
 **Ternary's unique combination**: lowest bit width + no multiplier + natural sparsity.
 
-→ Deep dive: [Detailed Comparison](details/10-comparison.md)
+→ Deep dive: [Detailed Comparison](docs/details/10-comparison.md)
 
 ---
 
@@ -260,7 +260,7 @@ Balanced ternary computing was explored in the 1950s (the Soviet Setun computer)
 
 The realistic vision is not replacing binary but a **specialized inference substrate**: ternary weights resident in on-chip SRAM, processed by multiplier-free arrays, serving edge AI.
 
-→ Deep dive: [History and Long-Term Vision](details/22-history-and-vision.md) — Setun, why binary won, target markets, phase gates, honest risks.
+→ Deep dive: [History and Long-Term Vision](docs/details/22-history-and-vision.md) — Setun, why binary won, target markets, phase gates, honest risks.
 
 ---
 
@@ -273,34 +273,34 @@ High-level overview and motivation — every section above links to its deep div
 
 | Document | Content |
 |----------|---------|
-| [`01-architecture-overview`](details/01-architecture-overview.md) | Layer types, data flow, hybrid precision, scaling strategies |
-| [`02-weight-quantization`](details/02-weight-quantization.md) | Quantizer pipeline, threshold methods, clipping, sensitivity, QAT |
-| [`03-training`](details/03-training.md) | Training pipeline, STE variants, distillation, distributed training |
-| [`04-storage-format`](details/04-storage-format.md) | Packing schemes, sparse formats, decoder design, bandwidth calc |
-| [`05-hardware-architecture`](details/05-hardware-architecture.md) | PE design, systolic array, memory hierarchy, ISA, verification |
-| [`06-llm-inference-engine`](details/06-llm-inference-engine.md) | Transformer mapping, KV cache, throughput analysis, energy |
-| [`07-accuracy-analysis`](details/07-accuracy-analysis.md) | Benchmarks, sensitivity analysis, ablation studies |
-| [`08-research-roadmap`](details/08-research-roadmap.md) | 48-week plan, resources, risks, publication strategy |
-| [`09-differential-encoding`](details/09-differential-encoding.md) | Two-wire encoding, CMOS compatibility, DFT |
-| [`10-comparison`](details/10-comparison.md) | Detailed comparison with BNN, INT8, INT4, FP8, pruning |
-| [`11-current-hardware`](details/11-current-hardware-gpu-cpu-npu.md) | GPU/CPU/NPU/FPGA deployment today |
-| [`12-custom-accelerator`](details/12-custom-ternary-accelerator-design.md) | Full ASIC architecture specification |
-| [`13-model-conversion`](details/13-model-conversion-guide.md) | PTQ/QAT pipelines, recipes, Elixir toolchain |
-| [`14-ternary-llm-feasibility`](details/14-ternary-llm-feasibility.md) | Feasibility at trillion-parameter scale, MoE, cost analysis |
-| [`15-ternary-vision`](details/15-ternary-vision-computing.md) | Vision computing: CNNs, ViT, detection, segmentation |
-| [`16-fpga-experiment`](details/16-fpga-experiment-guide.md) | FPGA experiment guide: board selection, RTL design, benchmarking |
-| [`17-asic-implementation`](details/17-asic-implementation-guide.md) | ASIC implementation guide: RTL design, physical design, DFT, manufacturing |
-| [`18-multiplication-as-selection`](details/18-multiplication-as-selection.md) | MAC cost model, select/add/skip datapath, op-count math, PE economics |
-| [`19-sparsity-economics`](details/19-sparsity-economics.md) | Sources of zeros, savings models, sparse formats, hardware gating |
-| [`20-quantization-theory`](details/20-quantization-theory.md) | Derivations: LS scales, TWN joint optimum, absmean, SQNR, bisection |
-| [`21-memory-bandwidth-analysis`](details/21-memory-bandwidth-analysis.md) | Roofline at batch 1, SRAM fit, energy breakdown, batch effects |
-| [`22-history-and-vision`](details/22-history-and-vision.md) | Setun history, binary's win, target markets, phase gates, risks |
-| [`23-practical-labs-and-exam`](details/23-practical-labs-and-exam.md) | Study path, 5 hands-on labs, capstone exam with answer key and rubric |
+| [`01-architecture-overview`](docs/details/01-architecture-overview.md) | Layer types, data flow, hybrid precision, scaling strategies |
+| [`02-weight-quantization`](docs/details/02-weight-quantization.md) | Quantizer pipeline, threshold methods, clipping, sensitivity, QAT |
+| [`03-training`](docs/details/03-training.md) | Training pipeline, STE variants, distillation, distributed training |
+| [`04-storage-format`](docs/details/04-storage-format.md) | Packing schemes, sparse formats, decoder design, bandwidth calc |
+| [`05-hardware-architecture`](docs/details/05-hardware-architecture.md) | PE design, systolic array, memory hierarchy, ISA, verification |
+| [`06-llm-inference-engine`](docs/details/06-llm-inference-engine.md) | Transformer mapping, KV cache, throughput analysis, energy |
+| [`07-accuracy-analysis`](docs/details/07-accuracy-analysis.md) | Benchmarks, sensitivity analysis, ablation studies |
+| [`08-research-roadmap`](docs/details/08-research-roadmap.md) | 48-week plan, resources, risks, publication strategy |
+| [`09-differential-encoding`](docs/details/09-differential-encoding.md) | Two-wire encoding, CMOS compatibility, DFT |
+| [`10-comparison`](docs/details/10-comparison.md) | Detailed comparison with BNN, INT8, INT4, FP8, pruning |
+| [`11-current-hardware`](docs/details/11-current-hardware-gpu-cpu-npu.md) | GPU/CPU/NPU/FPGA deployment today |
+| [`12-custom-accelerator`](docs/details/12-custom-ternary-accelerator-design.md) | Full ASIC architecture specification |
+| [`13-model-conversion`](docs/details/13-model-conversion-guide.md) | PTQ/QAT pipelines, recipes, Elixir toolchain |
+| [`14-ternary-llm-feasibility`](docs/details/14-ternary-llm-feasibility.md) | Feasibility at trillion-parameter scale, MoE, cost analysis |
+| [`15-ternary-vision`](docs/details/15-ternary-vision-computing.md) | Vision computing: CNNs, ViT, detection, segmentation |
+| [`16-fpga-experiment`](docs/details/16-fpga-experiment-guide.md) | FPGA experiment guide: board selection, RTL design, benchmarking |
+| [`17-asic-implementation`](docs/details/17-asic-implementation-guide.md) | ASIC implementation guide: RTL design, physical design, DFT, manufacturing |
+| [`18-multiplication-as-selection`](docs/details/18-multiplication-as-selection.md) | MAC cost model, select/add/skip datapath, op-count math, PE economics |
+| [`19-sparsity-economics`](docs/details/19-sparsity-economics.md) | Sources of zeros, savings models, sparse formats, hardware gating |
+| [`20-quantization-theory`](docs/details/20-quantization-theory.md) | Derivations: LS scales, TWN joint optimum, absmean, SQNR, bisection |
+| [`21-memory-bandwidth-analysis`](docs/details/21-memory-bandwidth-analysis.md) | Roofline at batch 1, SRAM fit, energy breakdown, batch effects |
+| [`22-history-and-vision`](docs/details/22-history-and-vision.md) | Setun history, binary's win, target markets, phase gates, risks |
+| [`23-practical-labs-and-exam`](docs/details/23-practical-labs-and-exam.md) | Study path, 5 hands-on labs, capstone exam with answer key and rubric |
 
 ### Code & Tools
 | Path | Content |
 |------|---------|
-| [`tools/ternary_converter/`](tools/ternary_converter/) | Full Elixir app: convert (safetensors → .tbin), demo, info, validate |
-| [`examples/ternary_pure/`](examples/ternary_pure/) | Pure Elixir quantization + packing demo |
-| [`examples/ternary_nx/`](examples/ternary_nx/) | Nx tensor-based quantization + GEMM demo |
-| [`examples/ternary_accel/`](examples/ternary_accel/) | Ternary GEMM on GPU: NVIDIA CUDA (EXLA) + Apple Silicon MLX (EMLX) |
+| [`tools/balanced_ternary_engine/`](tools/balanced_ternary_engine/) | Full Elixir app: convert (safetensors → .tbin), demo, info, validate |
+| [`docs/examples/ternary_pure/`](docs/examples/ternary_pure/) | Pure Elixir quantization + packing demo |
+| [`docs/examples/ternary_nx/`](docs/examples/ternary_nx/) | Nx tensor-based quantization + GEMM demo |
+| [`docs/examples/ternary_accel/`](docs/examples/ternary_accel/) | Ternary GEMM on GPU: NVIDIA CUDA (EXLA) + Apple Silicon MLX (EMLX) |

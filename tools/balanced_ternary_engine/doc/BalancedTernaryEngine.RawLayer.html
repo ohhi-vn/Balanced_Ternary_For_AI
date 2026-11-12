@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.4">
+    <meta name="project" content="balanced_ternary_engine v0.1.0-dev">
+
+
+    <title>BalancedTernaryEngine.RawLayer — balanced_ternary_engine v0.1.0-dev</title>
+
+    <link rel="stylesheet" href="dist/html-elixir-RXHHCTJW.css" />
+
+    <script defer src="dist/sidebar_items-FCB9427C.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-MI33G4N7.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="BalancedTernaryEngine.html" class="sidebar-projectName" translate="no">
+balanced_ternary_engine
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.1.0-dev
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of balanced_ternary_engine</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">BalancedTernaryEngine.<wbr />RawLayer</span> 
+      <small class="app-vsn" translate="no">(balanced_ternary_engine v0.1.0-dev)</small>
+
+    </h1>
+
+<a href="BalancedTernaryEngine.RawLayer.md" title="Copy Markdown (hold Ctrl/Cmd and click it to open as Markdown)" class="copy-markdown icon-action" rel="help">
+  <i class="ri-markdown-line" aria-hidden="true"></i>
+  <span class="sr-only">Copy Markdown</span>
+</a>
+
+
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>A dense weight matrix kept at half precision inside a converted model.</p><p>Quantization-sensitive tensors — token embeddings, LM head, layer
+norms — are stored as <code class="inline">RawLayer</code> instead of being ternarized
+(see <a href="BalancedTernaryEngine.Architectures.html"><code class="inline">BalancedTernaryEngine.Architectures</code></a>). Weights are held as raw
+float16 bytes; activations are computed in f32.</p>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:t/0" data-no-tooltip="" translate="no">t()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#forward_nx/2" data-no-tooltip="" translate="no">forward_nx(layer, input)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Forward pass: dequantize to f32 and apply as a linear projection.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#from_binary/1" data-no-tooltip="" translate="no">from_binary(binary)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deserialize from binary. Returns <code class="inline">{layer, rest_binary}</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#from_tensor/2" data-no-tooltip="" translate="no">from_tensor(tensor, name)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Build a RawLayer from a tensor of any float type (stored as f16).</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#packed_bytes/1" data-no-tooltip="" translate="no">packed_bytes(layer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Byte size of the stored f16 payload (for stats).</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#to_binary/1" data-no-tooltip="" translate="no">to_binary(layer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Serialize to binary: name, shape, f16 payload.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#to_tensor/1" data-no-tooltip="" translate="no">to_tensor(layer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Materialize the weights as an f32 tensor.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:t/0">
+
+  <div class="detail-header">
+    <a href="#t:t/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">t()</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@type</span> t() :: %BalancedTernaryEngine.RawLayer{
+  data: <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">binary</a>(),
+  name: <a href="https://elixir.hexdocs.pm/String.html#t:t/0">String.t</a>(),
+  shape: <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">tuple</a>()
+}</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="forward_nx/2">
+
+  <div class="detail-header">
+    <a href="#forward_nx/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">forward_nx(layer, input)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> forward_nx(<a href="#t:t/0">t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()) :: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()</pre>
+
+      </div>
+
+<p>Forward pass: dequantize to f32 and apply as a linear projection.</p><p>Handles both <code class="inline">(out, in)</code> (<code class="inline">y = x·Wᵀ</code>) and <code class="inline">(in, out)</code> (<code class="inline">y = x·W</code>)
+layouts — GPT-2-style checkpoints store Conv1D weights transposed, and
+the converter preserves whichever layout it was given. Intended for
+lm_head-style tensors; embeddings and norm vectors are consumed by
+runtimes via <a href="#to_tensor/1"><code class="inline">to_tensor/1</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="from_binary/1">
+
+  <div class="detail-header">
+    <a href="#from_binary/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">from_binary(binary)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> from_binary(<a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">binary</a>()) :: {<a href="#t:t/0">t</a>(), <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">binary</a>()}</pre>
+
+      </div>
+
+<p>Deserialize from binary. Returns <code class="inline">{layer, rest_binary}</code>.</p>
+  </section>
+</section>
+<section class="detail" id="from_tensor/2">
+
+  <div class="detail-header">
+    <a href="#from_tensor/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">from_tensor(tensor, name)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> from_tensor(<a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>(), <a href="https://elixir.hexdocs.pm/String.html#t:t/0">String.t</a>()) :: <a href="#t:t/0">t</a>()</pre>
+
+      </div>
+
+<p>Build a RawLayer from a tensor of any float type (stored as f16).</p>
+  </section>
+</section>
+<section class="detail" id="packed_bytes/1">
+
+  <div class="detail-header">
+    <a href="#packed_bytes/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">packed_bytes(layer)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> packed_bytes(<a href="#t:t/0">t</a>()) :: <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">non_neg_integer</a>()</pre>
+
+      </div>
+
+<p>Byte size of the stored f16 payload (for stats).</p>
+  </section>
+</section>
+<section class="detail" id="to_binary/1">
+
+  <div class="detail-header">
+    <a href="#to_binary/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">to_binary(layer)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> to_binary(<a href="#t:t/0">t</a>()) :: <a href="https://elixir.hexdocs.pm/typespecs.html#built-in-types">binary</a>()</pre>
+
+      </div>
+
+<p>Serialize to binary: name, shape, f16 payload.</p>
+  </section>
+</section>
+<section class="detail" id="to_tensor/1">
+
+  <div class="detail-header">
+    <a href="#to_tensor/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">to_tensor(layer)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> to_tensor(<a href="#t:t/0">t</a>()) :: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()</pre>
+
+      </div>
+
+<p>Materialize the weights as an f32 tensor.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/balanced_ternary_engine/0.1.0-dev">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/balanced_ternary_engine/0.1.0-dev">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+              <a href="llms.txt" target="_blank">
+                View llms.txt
+              </a>
+
+
+              <a href="balanced_ternary_engine.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.4) for the
+
+            <a href="https://elixir-lang.org" title="Elixir" target="_blank" translate="no">Elixir programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.4">
+    <meta name="project" content="balanced_ternary_engine v0.1.0-dev">
+
+
+    <title>BalancedTernaryEngine.Architectures — balanced_ternary_engine v0.1.0-dev</title>
+
+    <link rel="stylesheet" href="dist/html-elixir-RXHHCTJW.css" />
+
+    <script defer src="dist/sidebar_items-FCB9427C.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-MI33G4N7.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="BalancedTernaryEngine.html" class="sidebar-projectName" translate="no">
+balanced_ternary_engine
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.1.0-dev
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of balanced_ternary_engine</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">BalancedTernaryEngine.<wbr />Architectures</span> 
+      <small class="app-vsn" translate="no">(balanced_ternary_engine v0.1.0-dev)</small>
+
+    </h1>
+
+<a href="BalancedTernaryEngine.Architectures.md" title="Copy Markdown (hold Ctrl/Cmd and click it to open as Markdown)" class="copy-markdown icon-action" rel="help">
+  <i class="ri-markdown-line" aria-hidden="true"></i>
+  <span class="sr-only">Copy Markdown</span>
+</a>
+
+
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>Per-architecture mixed-precision policies for common model families.</p><p>Encodes the conversion recipes from <code class="inline">details/13-model-conversion-guide.md</code>
+(§13.4): which weight tensors are ternarized, which stay FP16 because
+they are quantization-sensitive (embeddings, norms, LM head), and
+which are skipped entirely (non-weight buffers).</p><p>Presets:</p><ul><li><code class="inline">:llama</code>   — LLaMA / Mistral / Mixtral / Qwen-style decoders</li><li><code class="inline">:gpt2</code>    — GPT-2 / GPT-NeoX-style decoders (Conv1D transposition handled)</li><li><code class="inline">:bert</code>    — BERT / RoBERTa encoders</li><li><code class="inline">:vit</code>       — Vision Transformers</li><li><code class="inline">:yolo</code>      — YOLO object detectors</li><li><code class="inline">:imagenet</code>  — ImageNet image classifiers</li><li><code class="inline">:llm</code>       — Decoder-only LLMs under 8B parameters</li><li><code class="inline">:generic</code>   — heuristic fallback for unknown architectures</li></ul>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:policy/0" data-no-tooltip="" translate="no">policy()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:preset/0" data-no-tooltip="" translate="no">preset()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#classify/2" data-no-tooltip="" translate="no">classify(preset, name)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Classify a weight tensor by layer name.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#presets/0" data-no-tooltip="" translate="no">presets()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#transform/3" data-no-tooltip="" translate="no">transform(arg1, name, tensor)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Apply architecture-specific tensor transforms before quantization.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:policy/0">
+
+  <div class="detail-header">
+    <a href="#t:policy/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">policy()</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@type</span> policy() :: :ternary | :keep_fp16 | :skip</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:preset/0">
+
+  <div class="detail-header">
+    <a href="#t:preset/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">preset()</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@type</span> preset() :: :llama | :gpt2 | :bert | :vit | :yolo | :imagenet | :llm | :generic</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="classify/2">
+
+  <div class="detail-header">
+    <a href="#classify/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">classify(preset, name)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> classify(<a href="#t:preset/0">preset</a>() | <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">atom</a>(), <a href="https://elixir.hexdocs.pm/String.html#t:t/0">String.t</a>()) :: <a href="#t:policy/0">policy</a>()</pre>
+
+      </div>
+
+<p>Classify a weight tensor by layer name.</p><p>Returns <code class="inline">:ternary</code> (convert), <code class="inline">:keep_fp16</code> (store dense at half
+precision), or <code class="inline">:skip</code> (do not store).</p><p>Rules are evaluated in a fixed order — buffers first, then standalone
+biases, then sensitivity, with &quot;2-D weight&quot; as the ternary default:</p><pre><code class="makeup elixir" translate="no"><span class="n">classify</span><span class="p" data-group-id="group-1">(</span><span class="ss">:llama</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;model.layers.0.self_attn.q_proj.weight&quot;</span><span class="p" data-group-id="group-1">)</span><span class="w">   </span><span class="c1">#=&gt; :ternary</span><span class="w">
+</span><span class="n">classify</span><span class="p" data-group-id="group-2">(</span><span class="ss">:llama</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;model.embed_tokens.weight&quot;</span><span class="p" data-group-id="group-2">)</span><span class="w">                </span><span class="c1">#=&gt; :keep_fp16</span><span class="w">
+</span><span class="n">classify</span><span class="p" data-group-id="group-3">(</span><span class="ss">:llama</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;model.layers.0.mlp.down_proj.bias&quot;</span><span class="p" data-group-id="group-3">)</span><span class="w">        </span><span class="c1">#=&gt; :skip</span><span class="w">
+</span><span class="n">classify</span><span class="p" data-group-id="group-4">(</span><span class="ss">:gpt2</span><span class="p">,</span><span class="w">  </span><span class="s">&quot;transformer.wte.weight&quot;</span><span class="p" data-group-id="group-4">)</span><span class="w">                   </span><span class="c1">#=&gt; :keep_fp16</span><span class="w">
+</span><span class="n">classify</span><span class="p" data-group-id="group-5">(</span><span class="ss">:bert</span><span class="p">,</span><span class="w">  </span><span class="s">&quot;bert.pooler.dense.weight&quot;</span><span class="p" data-group-id="group-5">)</span><span class="w">                 </span><span class="c1">#=&gt; :keep_fp16</span></code></pre><p>Matching is done on the downcased name because HuggingFace checkpoints
+prefix tensors with varying model prefixes (&quot;model.&quot;, &quot;bert.&quot;, &quot;vit.&quot;)
+but keep suffix conventions stable.</p>
+  </section>
+</section>
+<section class="detail" id="presets/0">
+
+  <div class="detail-header">
+    <a href="#presets/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">presets()</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> presets() :: [<a href="#t:preset/0">preset</a>()]</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="transform/3">
+
+  <div class="detail-header">
+    <a href="#transform/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">transform(arg1, name, tensor)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> transform(<a href="#t:preset/0">preset</a>() | <a href="https://elixir.hexdocs.pm/typespecs.html#basic-types">atom</a>(), <a href="https://elixir.hexdocs.pm/String.html#t:t/0">String.t</a>(), <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()) :: <a href="https://nx.hexdocs.pm/1.0.0/Nx.Tensor.html#t:t/0">Nx.Tensor.t</a>()</pre>
+
+      </div>
+
+<p>Apply architecture-specific tensor transforms before quantization.</p><p>GPT-2 uses <code class="inline">Conv1D</code> modules whose weights are stored transposed
+<code class="inline">(in_features, out_features)</code> relative to <code class="inline">nn.Linear</code>. They are
+transposed here so every <code class="inline">.tbin</code> layer is <code class="inline">(out, in)</code>.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/balanced_ternary_engine/0.1.0-dev">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/balanced_ternary_engine/0.1.0-dev">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+              <a href="llms.txt" target="_blank">
+                View llms.txt
+              </a>
+
+
+              <a href="balanced_ternary_engine.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.4) for the
+
+            <a href="https://elixir-lang.org" title="Elixir" target="_blank" translate="no">Elixir programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>
